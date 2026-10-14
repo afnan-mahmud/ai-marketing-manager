@@ -68,3 +68,18 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   saturation) are rule-of-thumb constants in `analytics/diagnostics.ts`, returned with every diagnostics result so
   Claude can explain them. Minimum volumes (50 link clicks, 100 LPVs, 10 carts) avoid flags on noise.
 - Responses use a compact KPI set per entity (`COMPACT_METRICS`) to keep tool output small for the client.
+
+## Reports, prompts, resources
+
+- **One report per (date, type).** Saving the same type twice on a day overwrites the file and updates the row —
+  re-running a briefing replaces it rather than piling up drafts. File: `data/reports/YYYY-MM-DD-<type>.md`
+  (report types are restricted to `[a-z0-9_]` so they are safe in file names).
+- If the Markdown doesn't start with a heading, the title is prepended as `# <title>`.
+- **Prompts are plain instructions** (a single user message) listing tool calls in order plus shared "house rules"
+  (language from `business.language`, currency, facts vs recommendations, honesty about missing/stale data,
+  read-only toward Meta, positioning is an estimate). MCP prompt arguments are strings, so numeric args
+  (`days`, `count`) are parsed and clamped.
+- **The glossary resource is generated from code** (`METRIC_DEFINITIONS`, verdict constants, `BENCHMARKS`) so it
+  always matches what the tools compute. The playbook is a static Markdown file for community edits.
+- Competitors in business.yaml are mirrored into the DB (`syncFromConfig`) whenever the profile is edited
+  through the tool and before competitor tools run, so manual YAML edits are picked up too.
