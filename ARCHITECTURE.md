@@ -4,7 +4,7 @@
 > Build it phase by phase (see §14). Do not skip the acceptance criteria. When something here is
 > ambiguous, choose the simplest option that satisfies the acceptance criteria and note it in `DECISIONS.md`.
 >
-> **Status:** all phases (0–7) are implemented. Where the implementation had to choose or deviate
+> **Status:** all phases (0–7) are implemented, plus §18 (agency workspace: one project per client). Where the implementation had to choose or deviate
 > (e.g. Node ≥ 22, `exceljs` instead of `xlsx`, the own brand stored as an `is_self` competitor), the reasoning is in
 > [`DECISIONS.md`](DECISIONS.md).
 
@@ -117,9 +117,9 @@ All logs go to `stderr` via a small logger (`src/utils/logger.ts`).
 └───────┼─────────────────────────────────┼────────────────────────────┘
         │                                 │
   ┌─────▼─────────────┐          ┌────────▼─────────┐
-  │ data/inbox/*.csv  │          │ data/app.db      │
-  │ Meta Graph API    │          │ data/reports/*.md│
-  │ competitor sites  │          │ data/snapshots/  │
+  │ <project>/inbox/  │          │ <project>/app.db │
+  │ Meta Graph API    │          │ <project>/reports│
+  │ competitor sites  │          │ <project>/snapsh.│
   └───────────────────┘          └──────────────────┘
 ```
 
@@ -144,7 +144,7 @@ ai-marketing-manager/
 ├── CONTRIBUTING.md
 ├── LICENSE                      # MIT
 ├── .env.example
-├── .gitignore                   # ignores .env, data/*, config/business.yaml
+├── .gitignore                   # ignores .env and projects/*
 ├── .github/                     # CI workflow, issue templates, PR template
 ├── package.json
 ├── tsconfig.json / tsconfig.build.json
@@ -153,13 +153,11 @@ ai-marketing-manager/
 ├── config/
 │   └── business.example.yaml    # template; user copies to business.yaml
 │
-├── data/                        # all user data — gitignored except .gitkeep files
-│   ├── inbox/                   # user drops Meta Ads Manager exports here
-│   ├── processed/               # imported files are moved here (with date prefix)
-│   ├── competitors/             # manual competitor ad imports (csv/json)
-│   ├── snapshots/               # raw competitor website text snapshots
-│   ├── reports/                 # saved reports (YYYY-MM-DD-<type>.md)
-│   └── app.db                   # SQLite database (created at runtime)
+├── projects/                    # agency workspace — gitignored except .gitkeep (see §18)
+│   ├── .active                  # active project slug
+│   └── <client-slug>/           # one folder per client project
+│       ├── project.json  business.yaml  project.env  app.db
+│       └── inbox/ processed/ competitors/ snapshots/ reports/
 │
 ├── examples/
 │   ├── sample-meta-export.csv   # realistic fake data for testing & demos (scripts/generate-sample-data.mjs)
@@ -174,7 +172,8 @@ ai-marketing-manager/
 ├── src/
 │   ├── index.ts                 # entry: load config, init db, start stdio server
 │   ├── server.ts                # creates McpServer, registers tools/prompts/resources
-│   ├── context.ts               # AppContext: env, paths, db, repos, services, clock, fetch (injectable)
+│   ├── workspace.ts             # agency workspace: create/list/resolve/archive client projects, per-project contexts
+│   ├── context.ts               # AppContext for ONE project: env, paths, db, repos, services, clock, fetch
 │   │
 │   ├── config/
 │   │   ├── env.ts               # zod-validated env vars
@@ -231,12 +230,12 @@ ai-marketing-manager/
 ### 6.1 `.env` (secrets — never committed)
 
 ```dotenv
-# Data location (default: ./data)
-DATA_DIR=./data
+# Agency workspace: one folder per client project (default: ./projects)
+PROJECTS_DIR=./projects
 
 # --- Meta Marketing API (optional; folder import works without it) ---
 META_ACCESS_TOKEN=            # long-lived token with ads_read permission
-META_AD_ACCOUNT_ID=           # numeric id, without "act_"
+META_AD_ACCOUNT_ID=           # per project only: projects/<client>/project.env (never global)
 META_API_VERSION=v21.0        # keep configurable; check Meta's current version
 
 # --- Meta Ad Library API (optional) ---
@@ -247,9 +246,10 @@ WEB_USER_AGENT=AIMarketingManagerBot/1.0 (+https://github.com/<you>/ai-marketing
 WEB_TIMEOUT_MS=15000
 ```
 
-(Implemented extras: `BUSINESS_CONFIG` path and `LOG_LEVEL`.)
+(Implemented: `PROJECTS_DIR` and `LOG_LEVEL`; `DATA_DIR` was replaced by per-project folders and the ad account id
+moved to each project's `project.env` — see §18.)
 
-### 6.2 `config/business.yaml` (business profile — gitignored, example committed)
+### 6.2 `projects/<client>/business.yaml` (business profile per project — gitignored, example in `config/`)
 
 ```yaml
 business:
@@ -289,7 +289,7 @@ competitors:
 ```
 
 Validate with zod at startup. If the file is missing, the server still starts, and tools that need it
-return a clear message: _"Create config/business.yaml from config/business.example.yaml"_.
+return a clear message: _"This project has no business profile yet — run setup_wizard / update_business_profile"_.
 Tool `update_business_profile` lets Claude edit this file conversationally (see §9).
 (Implemented extras: `extra_urls` for the business and each competitor, and `positioning.weights`.)
 
@@ -342,7 +342,7 @@ CREATE TABLE reports (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, type TEXT
 
 **A) Folder import (always available)**
 
-- User exports from Ads Manager (Ads level, breakdown "Day") as CSV or XLSX into `data/inbox/`.
+- User exports from Ads Manager (Ads level, breakdown "Day") as CSV or XLSX into the project's `inbox/` (`projects/<client>/inbox/`).
 - `columnMap.ts` maps known header variants to canonical fields. Meta export headers change
   over time and by language/settings, so the map is a list of aliases per field, e.g.
   `link_clicks: ["Link clicks", "Clicks (link)", "Link Clicks"]`,
@@ -533,7 +533,7 @@ by step. All prompts tell Claude to: answer in `business.language`, use `busines
 
 ## 13. Security & privacy
 
-- `.env`, `config/business.yaml`, and everything in `data/` are gitignored (keeping `.gitkeep` files).
+- `.env` and everything in `projects/` (profiles, `project.env`, data, reports) are gitignored.
 - Meta token: `ads_read` only. README documents how to create a System User token in Business Manager.
 - Tokens are never logged; `access_token` is redacted in any logged URL or error message.
 - Web fetcher: respects robots.txt, rate-limits per domain, identifies with a clear User-Agent, public pages only.
@@ -577,3 +577,30 @@ See [`CLAUDE.md`](CLAUDE.md) in the repo root — the short rules every contribu
 - Local HTML dashboard of trends.
 - Write actions (pause/scale) behind explicit opt-in and confirmation.
 - Creative image/video analysis using thumbnails passed to Claude.
+
+---
+
+## 18. Agency workspace: multiple client projects
+
+The server is used by an agency with many clients. Each client is a **project**:
+
+```
+projects/<client-slug>/
+├── project.json     # { name, slug, created_at }
+├── business.yaml    # this client's profile, goals, targets, competitors (§6.2)
+├── project.env      # this client's META_AD_ACCOUNT_ID (+ optional token / API version overrides)
+├── app.db           # this client's SQLite database (§7 schema)
+└── inbox/ processed/ competitors/ snapshots/ reports/
+```
+
+- `src/workspace.ts` (`Workspace`) lists, creates, resolves, activates and archives projects and hands out one
+  `AppContext` per project (cached; reloaded when `project.env` changes). Everything below the MCP layer is unchanged:
+  services, repositories and analytics still work on a single project's context.
+- **Workspace tools:** `create_project`, `list_projects`, `switch_project`, `configure_project_meta`,
+  `archive_project`. **Project tools** (all of §9) automatically get an optional `project` argument; without it the
+  active project is used, and with several projects but none active they refuse to guess.
+- **Prompts** accept `project` and instruct Claude to pass it on every tool call; without a project they tell Claude to
+  ask which client (or create one).
+- **Resources** read the active project; `marketing://projects` lists all projects.
+- **Isolation rules:** one database per project; the ad account id is per project only (never inherited from the global
+  `.env`); the agency token may be shared via the global `.env` or overridden per project.

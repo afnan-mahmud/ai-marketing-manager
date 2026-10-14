@@ -3,7 +3,7 @@
     "marketing-manager": {
       "command": "node",
       "args": ["/absolute/path/to/ai-marketing-manager/dist/index.js"],
-      "env": { "DATA_DIR": "/absolute/path/to/ai-marketing-manager/data" }
+      "env": { "PROJECTS_DIR": "/absolute/path/to/ai-marketing-manager/projects" }
     }
   }
 }

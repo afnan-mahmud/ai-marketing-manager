@@ -1,26 +1,20 @@
-// Starts dist/index.js over stdio with a temp data dir, imports the sample export and runs a few tools.
+// Starts dist/index.js over stdio with a temp projects dir, creates a client project, imports the sample export
+// into it and runs a few tools.
 // Used in CI and handy after a fresh clone: `npm run build && node scripts/smoke-test.mjs`.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { copyFileSync, mkdirSync, mkdtempSync } from "node:fs";
+import { copyFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const dataDir = mkdtempSync(join(tmpdir(), "amm-smoke-"));
-mkdirSync(join(dataDir, "inbox"), { recursive: true });
-copyFileSync(
-  join(root, "examples", "sample-meta-export.csv"),
-  join(dataDir, "inbox", "sample.csv"),
-);
-const configPath = join(dataDir, "business.yaml");
-copyFileSync(join(root, "config", "business.example.yaml"), configPath);
+const projectsDir = join(mkdtempSync(join(tmpdir(), "amm-smoke-")), "projects");
 
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [join(root, "dist", "index.js")],
-  env: { ...process.env, DATA_DIR: dataDir, BUSINESS_CONFIG: configPath, LOG_LEVEL: "warn" },
+  env: { ...process.env, PROJECTS_DIR: projectsDir, LOG_LEVEL: "warn" },
 });
 const client = new Client({ name: "smoke-test", version: "1.0.0" });
 await client.connect(transport);
@@ -36,7 +30,11 @@ const call = async (name, args = {}) => {
 const { tools } = await client.listTools();
 const { prompts } = await client.listPrompts();
 process.stderr.write(`Server exposes ${tools.length} tools and ${prompts.length} prompts.\n`);
-await call("import_ads_from_folder");
+const created = await call("create_project", { name: "Smoke Client" });
+const dir = created.project.path;
+copyFileSync(join(root, "config", "business.example.yaml"), join(dir, "business.yaml"));
+copyFileSync(join(root, "examples", "sample-meta-export.csv"), join(dir, "inbox", "sample.csv"));
+await call("import_ads_from_folder", { project: "Smoke Client" });
 await call("get_setup_status");
 await call("get_performance_summary", { period: { since: "2026-10-07", until: "2026-10-13" } });
 const wl = await call("get_winners_and_losers", {

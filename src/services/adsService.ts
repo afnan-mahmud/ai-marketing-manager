@@ -38,7 +38,7 @@ export class AdsService {
     if (!token) {
       throw new AppError(
         "The Meta Marketing API is not configured.",
-        "Set META_ACCESS_TOKEN (ads_read only) and META_AD_ACCOUNT_ID in .env and restart the server — or use folder import (data/inbox/) instead.",
+        "Set META_ACCESS_TOKEN (ads_read only) in the global .env or this project's project.env, and the ad account with configure_project_meta — or use folder import (projects/<project>/inbox/) instead.",
       );
     }
     return new MetaApiClient({
@@ -56,7 +56,7 @@ export class AdsService {
     if (!accountId) {
       throw new AppError(
         "META_AD_ACCOUNT_ID is not set.",
-        "Add your numeric ad account id (without act_) to .env and restart the server.",
+        "Set this client's ad account with configure_project_meta (numeric id, without act_). Each project has its own ad account.",
       );
     }
     const today = this.ctx.today();
@@ -175,14 +175,14 @@ export class AdsService {
     }
   }
 
-  /** Imports every CSV/XLSX in data/inbox/; successful files move to data/processed/YYYYMMDD-HHmm_<name>. */
+  /** Imports every CSV/XLSX in projects/<project>/inbox/; successful files move to projects/<project>/processed/YYYYMMDD-HHmm_<name>. */
   async importFromFolder(dryRun = false) {
     const { inbox, processed } = this.ctx.paths;
     const files = listInboxFiles(inbox);
     if (files.length === 0) {
       return {
         summary:
-          "No files in data/inbox/. Export from Ads Manager (Ads level, breakdown by Day) and drop the CSV/XLSX there.",
+          "No files in projects/<project>/inbox/. Export from Ads Manager (Ads level, breakdown by Day) and drop the CSV/XLSX there.",
         dry_run: dryRun,
         files: [] as FileImportResult[],
         totals: { files: 0, rows_upserted: 0 },

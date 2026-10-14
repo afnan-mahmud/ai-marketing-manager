@@ -6,18 +6,7 @@ coverage/
 
 # Secrets and personal business settings
 .env
-config/business.yaml
 
-# All user data (keep folder structure)
-data/*
-!data/inbox/
-!data/processed/
-!data/competitors/
-!data/snapshots/
-!data/reports/
-data/inbox/*
-data/processed/*
-data/competitors/*
-data/snapshots/*
-data/reports/*
-!data/*/.gitkeep
+# Client projects: every project folder holds client data, business profiles and Meta settings
+projects/*
+!projects/.gitkeep

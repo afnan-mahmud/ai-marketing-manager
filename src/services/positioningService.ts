@@ -173,7 +173,7 @@ function howToFill(s: SignalName): string {
     case "active_ad_count":
     case "ad_longevity":
     case "creative_velocity":
-      return "fetch_competitor_ads (EU) or import_competitor_ads from data/competitors/<name>.csv; for your own brand, import/sync ad data.";
+      return "fetch_competitor_ads (EU) or import_competitor_ads from projects/<project>/competitors/<name>.csv; for your own brand, import/sync ad data.";
     case "offer_aggressiveness":
     case "price_position":
       return "snapshot_competitor_websites (and add product/pricing pages as extra_urls in business.yaml).";

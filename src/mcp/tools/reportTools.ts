@@ -15,7 +15,7 @@ export const saveReport = defineTool({
   name: "save_report",
   title: "Save report",
   description:
-    "Saves a Markdown report to data/reports/YYYY-MM-DD-<type>.md and indexes it, so later conversations can refer back. Saving the same type twice on one day replaces it.",
+    "Saves a Markdown report to projects/<project>/reports/YYYY-MM-DD-<type>.md and indexes it, so later conversations can refer back. Saving the same type twice on one day replaces it.",
   inputSchema: {
     type: reportType,
     title: z.string().min(1).max(200),

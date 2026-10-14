@@ -132,7 +132,7 @@ describe("error handling", () => {
     const r = await call(ctx, "get_performance_summary", { period: "last_7d" });
     expect(r.isError).toBe(true);
     expect(r.data.type).toBe("NoDataError");
-    expect(r.data.hint).toContain("data/inbox");
+    expect(r.data.hint).toContain("projects/<project>/inbox");
   });
   it("validates input", async () => {
     const ctx = createTestContext();

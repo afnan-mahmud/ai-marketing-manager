@@ -38,7 +38,7 @@ export const EU_COUNTRIES = new Set([
 export const AD_LIBRARY_LIMITATION =
   "Meta's Ad Library API only returns commercial ads delivered in the EU (plus political/issue ads worldwide). " +
   "For other countries, browse the public Ad Library website (get_ad_library_link) and save ads you see to " +
-  "data/competitors/<competitor-name>.csv, then run import_competitor_ads.";
+  "projects/<project>/competitors/<competitor-name>.csv, then run import_competitor_ads.";
 
 const FIELDS = [
   "id",

@@ -6,7 +6,7 @@ export const getBusinessProfile = defineTool({
   name: "get_business_profile",
   title: "Business profile",
   description:
-    "Returns the validated business profile from config/business.yaml: business (name, sector, country, currency, language, products, audience, brand voice), goals and KPI targets, classification thresholds and competitors.",
+    "Returns the validated business profile from projects/<project>/business.yaml: business (name, sector, country, currency, language, products, audience, brand voice), goals and KPI targets, classification thresholds and competitors.",
   inputSchema: {},
   handler: (_args, ctx) => {
     const config = ctx.business.require();
@@ -22,7 +22,7 @@ export const updateBusinessProfile = defineTool({
   name: "update_business_profile",
   title: "Update business profile",
   description:
-    "Creates or edits config/business.yaml. Pass only the fields to change: objects merge, arrays (products, competitors) replace the whole list, null removes a value (e.g. goals.targets.max_cpa: null). Comments in the file are preserved. A new file needs business.name, sector, country (ISO-2) and currency (ISO-3).",
+    "Creates or edits projects/<project>/business.yaml. Pass only the fields to change: objects merge, arrays (products, competitors) replace the whole list, null removes a value (e.g. goals.targets.max_cpa: null). Comments in the file are preserved. A new file needs business.name, sector, country (ISO-2) and currency (ISO-3).",
   inputSchema: businessPatchSchema.shape,
   readOnly: false,
   handler: (args, ctx) => {

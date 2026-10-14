@@ -2,15 +2,16 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { createServer } from "../../src/server.js";
-import { createTestContext, importSample } from "../helpers/context.js";
+import { createExampleProject, createTestWorkspace, importSample } from "../helpers/context.js";
 
 async function connect(business?: "example") {
-  const ctx = createTestContext({ business });
-  const server = createServer(ctx);
+  const ws = createTestWorkspace();
+  const ctx = business ? createExampleProject(ws) : ws.create("Empty Client").ctx;
+  const server = createServer(ws);
   const [clientT, serverT] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "1" });
   await Promise.all([server.connect(serverT), client.connect(clientT)]);
-  return { ctx, client };
+  return { ctx, client, ws };
 }
 
 describe("MCP server surface", () => {
@@ -72,6 +73,7 @@ describe("MCP server surface", () => {
       "marketing://business-profile",
       "marketing://glossary",
       "marketing://playbook",
+      "marketing://projects",
       "marketing://reports/latest",
     ]);
     const glossary = await client.readResource({ uri: "marketing://glossary" });

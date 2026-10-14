@@ -1,20 +1,22 @@
 # AI Marketing Manager — MCP server
 
 An open-source **MCP (Model Context Protocol) server** that turns Claude (Claude Desktop, Claude Code, or any MCP
-client) into a **personal AI marketing manager** for a business running **Meta (Facebook/Instagram) ads**.
+client) into an **AI marketing manager for an agency's clients** running **Meta (Facebook/Instagram) ads**.
+Every client is a separate **project** with its own folder, business profile, competitors, Meta ad account, data and
+reports.
 
 Ask things like:
 
-- _"Give me today's marketing briefing."_
-- _"Which of my ads are winning and which should I kill?"_
-- _"How am I doing vs. my competitors?"_
-- _"Plan next week's content and write 3 video script ideas based on my best ads."_
-- _"What should I change in my next campaign to get more sales?"_
+- _"Create a project called Acme Foods."_
+- _"Give me today's marketing briefing for Acme Foods."_
+- _"Which of Glow BD's ads are winning and which should we kill?"_
+- _"How is Acme doing vs. its competitors?"_
+- _"Plan next week's content for Glow BD and write 3 video script ideas based on its best ads."_
 
 > **The server supplies facts. Claude supplies judgment.**
-> The server loads your ad data, computes metrics deterministically, tracks competitors and stores history, and
-> returns structured JSON. Claude does the reasoning. The server never calls an LLM, is **read-only toward Meta**,
-> and keeps all data **on your machine** (no telemetry).
+> The server loads ad data, computes metrics deterministically, tracks competitors and stores history, and returns
+> structured JSON. Claude does the reasoning. The server never calls an LLM, is **read-only toward Meta**, and keeps
+> all data **on your machine** (no telemetry).
 
 ---
 
@@ -23,8 +25,9 @@ Ask things like:
 - [Features](#features)
 - [Quick start (5 minutes)](#quick-start-5-minutes)
 - [Connect it to Claude](#connect-it-to-claude)
+- [Client projects](#client-projects)
 - [Daily use](#daily-use)
-- [Getting your ad data in](#getting-your-ad-data-in)
+- [Getting a client's ad data in](#getting-a-clients-ad-data-in)
 - [Configuration](#configuration)
 - [Example conversation](#example-conversation)
 - [Reference: prompts, tools, resources](#reference)
@@ -35,7 +38,9 @@ Ask things like:
 
 ## Features
 
-- **Your ad data** from Ads Manager exports (CSV/XLSX dropped in a folder) or a daily pull from the Meta
+- **Multi-client projects** — one workspace, one folder per client (`projects/<client>/`). Business profile,
+  competitor list, Meta ad account, database, reports and snapshots never mix between clients.
+- **Ad data** from Ads Manager exports (CSV/XLSX dropped in the client's inbox) or a daily pull from the Meta
   Marketing API. Re-imports never duplicate data.
 - **Performance analytics** — KPIs, period-over-period comparison, winners / losers / fatigued / learning ads with
   reason codes, creative fatigue detection, funnel diagnostics, budget efficiency, top creatives with their copy.
@@ -45,7 +50,7 @@ Ask things like:
 - **Market history** — Claude researches the market with its own web search; the server stores the findings so
   recurring trends become visible ("3rd day in a row").
 - **Workflows** — ready-made prompts: daily briefing, ad optimization plan, content plan, script ideas, sales growth
-  ideas, competitor report, weekly review, setup wizard. Reports are saved as Markdown in `data/reports/`.
+  ideas, competitor report, weekly review, setup wizard. Reports are saved as Markdown in the client's `reports/`.
 
 ## Quick start (5 minutes)
 
@@ -56,11 +61,10 @@ git clone https://github.com/afnan-mahmud/ai-marketing-manager
 cd ai-marketing-manager
 npm install
 npm run build
-cp .env.example .env
-cp config/business.example.yaml config/business.yaml   # then edit it (or let the setup_wizard prompt do it)
+cp .env.example .env      # optional: agency-wide Meta token, API version, etc.
 ```
 
-Optional check that everything works (runs the built server on the bundled sample data):
+Optional check that everything works (creates a temporary project and runs the built server on the sample data):
 
 ```bash
 npm run smoke
@@ -83,42 +87,74 @@ claude mcp add marketing-manager -- node /absolute/path/to/ai-marketing-manager/
     "marketing-manager": {
       "command": "node",
       "args": ["/absolute/path/to/ai-marketing-manager/dist/index.js"],
-      "env": { "DATA_DIR": "/absolute/path/to/ai-marketing-manager/data" }
+      "env": { "PROJECTS_DIR": "/absolute/path/to/ai-marketing-manager/projects" }
     }
   }
 }
 ```
 
-Restart Claude Desktop. Relative paths in `.env` (like `DATA_DIR=./data`) are resolved from the project folder,
+Restart Claude Desktop. Relative paths in `.env` (like `PROJECTS_DIR=./projects`) are resolved from the repo folder,
 so the server works regardless of the folder the client starts it in.
 
-**First run:** ask Claude _"Run the setup wizard"_ (or pick the `setup_wizard` prompt). It checks what's missing,
-creates your business profile, adds competitors and explains how to get your ad data in.
+**First client:** tell Claude _"Create a project called Acme Foods and run the setup wizard for it."_ Claude calls
+`create_project`, then asks for the client's details (sector, country, currency, language, products, targets,
+competitors) and saves them in that project's own profile.
 
-**Try it without your own data:** copy `examples/sample-meta-export.csv` into `data/inbox/` and ask
-_"Import my ads and tell me which ones are winning."_ (The sample covers 2026-09-14 → 2026-10-13; relative periods
-like "last_7d" automatically anchor to the last day of data and say so.)
+**Try it without real data:** create a project, copy `examples/sample-meta-export.csv` into
+`projects/<project>/inbox/` and ask _"Import the ads for <project> and tell me which ones are winning."_ (The sample
+covers 2026-09-14 → 2026-10-13; relative periods like "last_7d" automatically anchor to the last day of data.)
+
+## Client projects
+
+```
+projects/
+├── .active                     # which project tools use when no `project` is given
+├── acme-foods/
+│   ├── project.json            # name, created date
+│   ├── business.yaml           # this client's business profile, goals, targets, competitors
+│   ├── project.env             # this client's Meta ad account (and optional own token)
+│   ├── app.db                  # this client's ad data, competitor snapshots/ads, market history, report index
+│   ├── inbox/  processed/      # Ads Manager exports for this client
+│   ├── competitors/            # manually saved competitor ads (CSV/JSON)
+│   ├── snapshots/              # competitor website text snapshots
+│   └── reports/                # briefings, plans, reviews (Markdown)
+├── glow-bd/ …
+└── _archived/                  # archived projects (archive_project)
+```
+
+- **Create:** `create_project` with the client name → folder `projects/<slugified-name>/` (Bangla names work too).
+  Pass `business` to fill the profile at once, or run the `setup_wizard` prompt for the project.
+- **Target a client:** every tool and prompt accepts an optional `project` (name or folder). Claude is instructed to
+  pass it on every call for the client being discussed. Without it, the **active project** is used
+  (`switch_project`); if several projects exist and none is active, tools refuse to guess.
+- **Meta API per client:** each project has its own ad account id (`configure_project_meta`, stored in its
+  `project.env`). The agency's system-user token can live once in the global `.env`; a client-specific token can go in
+  that project's `project.env`. The ad account id is **never** taken from the global `.env`, so one client's ads can't
+  be synced into another client's project.
+- **Archive:** `archive_project` (with `confirm: true`) moves the folder to `projects/_archived/` — nothing is deleted.
+- **Overview:** `list_projects` shows every client with profile status, Meta settings, latest data date and which
+  one is active.
 
 ## Daily use
 
-1. Drop yesterday's Ads Manager export into `data/inbox/` — or configure the Meta API once and skip this.
-2. Ask: **"Give me today's briefing."**
+1. Drop each client's Ads Manager export into `projects/<client>/inbox/` — or configure its Meta ad account once.
+2. Ask: **"Give me today's briefing for Acme Foods."** (or run the `daily_briefing` prompt with `project`).
 
-Claude imports/syncs new data, researches the market, snapshots competitor websites, analyses your ads, and writes
-a briefing — _Market today · Competitors · My ads: good/bad · vs competitors · Top 3 actions today · Content idea of
-the day_ — saved to `data/reports/YYYY-MM-DD-daily_briefing.md`.
+Claude imports/syncs new data, researches the client's market, snapshots its competitors' websites, analyses its ads,
+and writes a briefing — _Market today · Competitors · My ads: good/bad · vs competitors · Top 3 actions today ·
+Content idea of the day_ — saved to `projects/<client>/reports/YYYY-MM-DD-daily_briefing.md`.
 
-## Getting your ad data in
+## Getting a client's ad data in
 
 ### Option A — Ads Manager export (no API key)
 
-1. Ads Manager → **Ads** tab → choose the date range.
+1. Ads Manager (the client's ad account) → **Ads** tab → choose the date range.
 2. **Breakdown → By time → Day** (needed for trends and fatigue detection).
 3. Columns: at least _Amount spent, Impressions, Reach, Link clicks_; ideally also _Landing page views, Adds to cart,
    Checkouts initiated, Purchases, Purchases conversion value, 3-second video plays, ThruPlays_, and _Ad ID_.
-   Adding _Headline, Body, Call to action_ gives Claude your ad copy for content ideas.
-4. **Export → Export table data → CSV or XLSX**, save it in `data/inbox/`, and ask Claude to import
-   (`import_ads_from_folder`). Imported files move to `data/processed/`.
+   Adding _Headline, Body, Call to action_ gives Claude the ad copy for content ideas.
+4. **Export → Export table data → CSV or XLSX**, save it in `projects/<client>/inbox/`, and ask Claude to import
+   (`import_ads_from_folder` with that project). Imported files move to the project's `processed/`.
 
 Header names vary by Ads Manager version, language and settings; the importer knows many variants
 (`src/sources/metaExport/columnMap.ts`), strips currency symbols (৳, Tk, $, …), handles Bengali digits and tells you
@@ -126,51 +162,68 @@ about anything it ignored. Missing required columns → a clear error listing wh
 
 ### Option B — Meta Marketing API (automatic)
 
-1. In **Business Settings → Users → System users**, create a system user and give it access to your ad account.
-2. **Generate a token** with **only the `ads_read` permission** (this server never needs write access).
-3. In `.env` set `META_ACCESS_TOKEN` and `META_AD_ACCOUNT_ID` (numbers only, without `act_`), then restart.
-4. `sync_ads_from_meta` pulls the last 7 days (re-pulling to capture late attribution) plus ad creatives.
+1. In **Business Settings → Users → System users**, create a system user and give it access to the clients' ad
+   accounts.
+2. **Generate a token** with **only the `ads_read` permission** (this server never needs write access) and put it in
+   the global `.env` as `META_ACCESS_TOKEN` — or, for a client with its own Business Manager, in that project's
+   `projects/<client>/project.env`.
+3. Set the client's ad account: _"Set Acme's ad account to 123456789"_ → `configure_project_meta`.
+4. `sync_ads_from_meta` (with the project) pulls the last 7 days (re-pulling to capture late attribution) plus ad
+   creatives.
 
-Tip: don't mix exports **without** the "Ad ID" column and the API for the same dates — ids won't match and data
-would be double-counted (the sync warns you if it detects this).
+Tip: don't mix exports **without** the "Ad ID" column and the API for the same dates in one project — ids won't
+match and data would be double-counted (the sync warns you if it detects this).
 
 ## Configuration
 
-### `.env` (secrets — never committed)
+### Global `.env` (agency-wide — never committed)
 
-| Variable                | Default                                 | Purpose                                                  |
-| ----------------------- | --------------------------------------- | -------------------------------------------------------- |
-| `DATA_DIR`              | `./data`                                | Where the database, inbox, snapshots and reports live    |
-| `BUSINESS_CONFIG`       | `./config/business.yaml`                | Business profile location                                |
-| `META_ACCESS_TOKEN`     | —                                       | Marketing API token (`ads_read` only). Optional          |
-| `META_AD_ACCOUNT_ID`    | —                                       | Numeric ad account id. Optional                          |
-| `META_API_VERSION`      | `v21.0`                                 | Graph API version — check Meta's current version         |
-| `META_AD_LIBRARY_TOKEN` | —                                       | Ad Library API token (falls back to `META_ACCESS_TOKEN`) |
-| `WEB_USER_AGENT`        | `AIMarketingManagerBot/1.0 (+repo URL)` | Identifies the website fetcher                           |
-| `WEB_TIMEOUT_MS`        | `15000`                                 | Website fetch timeout                                    |
-| `LOG_LEVEL`             | `info`                                  | `debug` / `info` / `warn` / `error` (logs go to stderr)  |
+| Variable                | Default                                 | Purpose                                                                 |
+| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| `PROJECTS_DIR`          | `./projects`                            | Where client project folders live                                       |
+| `META_ACCESS_TOKEN`     | —                                       | Agency system-user token (`ads_read` only). Projects can override       |
+| `META_API_VERSION`      | `v21.0`                                 | Graph API version — check Meta's current version. Projects can override |
+| `META_AD_LIBRARY_TOKEN` | —                                       | Ad Library API token (falls back to `META_ACCESS_TOKEN`)                |
+| `WEB_USER_AGENT`        | `AIMarketingManagerBot/1.0 (+repo URL)` | Identifies the website fetcher                                          |
+| `WEB_TIMEOUT_MS`        | `15000`                                 | Website fetch timeout                                                   |
+| `LOG_LEVEL`             | `info`                                  | `debug` / `info` / `warn` / `error` (logs go to stderr)                 |
 
-### `config/business.yaml` (your business — gitignored)
+`META_AD_ACCOUNT_ID` is ignored in the global `.env` (a warning is logged): it is always per project.
 
-Copy [`config/business.example.yaml`](config/business.example.yaml). Key parts:
+### `projects/<client>/project.env` (per client)
+
+Created with every project. Keys: `META_AD_ACCOUNT_ID` (required for API sync), and optional overrides
+`META_ACCESS_TOKEN`, `META_AD_LIBRARY_TOKEN`, `META_API_VERSION`. Edits are picked up on the next tool call.
+
+### `projects/<client>/business.yaml` (per client)
+
+Template: [`config/business.example.yaml`](config/business.example.yaml). Usually created by `create_project`
+(with `business`), the `setup_wizard` prompt or `update_business_profile`. Key parts:
 
 - `business` — name, sector, country (ISO-2), currency, **language** (answers and content are written in it),
   website, products (price, margin %), target audience, brand voice.
 - `goals` — `primary_kpi` (`purchases` | `leads` | `messages` | `link_clicks`), `targets` (`max_cpa`, `min_roas`,
   `min_ctr_pct`), `monthly_budget`.
 - `classification` — `min_spend_for_verdict`, `min_impressions_for_verdict`, `fatigue_frequency`.
-- `competitors` — name, website, optional `facebook_page_id`, notes, `extra_urls` (pricing/product pages to snapshot).
+- `competitors` — this client's competitors: name, website, optional `facebook_page_id`, notes, `extra_urls`.
 - `positioning.weights` — optional weights for the Market Presence Score.
 
-The file is re-read on every call, so edits apply immediately. Claude can edit it for you with
-`update_business_profile` (comments in the file are preserved). Without the file, analytics still work with default
-thresholds; competitor/market tools ask you to create it.
+The file is re-read on every call, so edits apply immediately (comments are preserved when Claude edits it).
+Without it, analytics still work with default thresholds; competitor/market tools ask for it.
 
 ## Example conversation
 
-> **You:** Which of my ads are winning and which should I kill?
+> **You:** Create a project called Glow BD — skincare brand in Bangladesh, prices in BDT, target CPA ৳400.
 >
-> **Claude** _(calls `get_winners_and_losers`, `detect_creative_fatigue`, `get_funnel_diagnostics`)_:
+> **Claude** _(calls `create_project` with the business details)_: Created **Glow BD** in `projects/glow-bd/`. Drop its
+> Ads Manager export into `projects/glow-bd/inbox/`, or tell me its ad account id. Who are its main competitors?
+>
+> _(…export dropped in the inbox…)_
+>
+> **You:** Which of Glow BD's ads are winning and which should we kill?
+>
+> **Claude** _(calls `import_ads_from_folder`, `get_winners_and_losers`, `detect_creative_fatigue`,
+> `get_funnel_diagnostics` — all with `project: "glow-bd"`)_:
 > **Facts (last 30 days, target CPA ৳400):**
 >
 > - ✅ Winners: _Free Delivery Offer_ (CPA ৳201, ROAS 6.3), _UGC Review – Nadia_ (CPA ৳301), _Founder Story Video_ (CPA ৳343).
@@ -206,16 +259,28 @@ Common `period` values: `"yesterday"`, `"last_7d"`, `"last_14d"`, `"last_30d"`, 
 `{ "since": "YYYY-MM-DD", "until": "YYYY-MM-DD" }`. Every result starts with a one-line `summary`; errors come back
 with `isError: true` and an actionable `hint`.
 
+**Projects (agency workspace)**
+
+| Tool                     | Input                                        | What it does                                                                                  |
+| ------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `create_project`         | `name`, `business?`                          | Creates `projects/<name>/` with its own profile, competitors, Meta settings, data and reports |
+| `list_projects`          | —                                            | All client projects, profile/Meta status, latest data date, active project                    |
+| `switch_project`         | `project`                                    | Sets the active project (used when a tool gets no `project`)                                  |
+| `configure_project_meta` | `project?`, `ad_account_id?`, `api_version?` | Sets the client's Meta ad account in its `project.env` (tokens are not accepted in chat)      |
+| `archive_project`        | `project`, `confirm: true`                   | Moves the project folder to `projects/_archived/`                                             |
+
+Every tool below also accepts an optional **`project`** (client name or folder) and echoes which project it used.
+
 **Setup & data**
 
-| Tool                      | Input              | What it does                                                                                |
-| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
-| `get_setup_status`        | —                  | Checks business.yaml, .env keys, database, data freshness and inbox files; lists next steps |
-| `get_business_profile`    | —                  | Returns the validated business profile                                                      |
-| `update_business_profile` | partial profile    | Creates/edits business.yaml (objects merge, arrays replace, `null` deletes; comments kept)  |
-| `import_ads_from_folder`  | `dry_run?`         | Imports all CSV/XLSX exports in `data/inbox/` (UPSERT), moves them to `data/processed/`     |
-| `sync_ads_from_meta`      | `since?`, `until?` | Pulls daily ad insights + creatives from the Marketing API (default last 7 days)            |
-| `get_data_coverage`       | —                  | Dates available, gaps, sources, number of ads/ad sets/campaigns                             |
+| Tool                      | Input              | What it does                                                                                            |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `get_setup_status`        | —                  | Checks the project's business.yaml, Meta settings, database, data freshness and inbox; lists next steps |
+| `get_business_profile`    | —                  | Returns the validated business profile                                                                  |
+| `update_business_profile` | partial profile    | Creates/edits business.yaml (objects merge, arrays replace, `null` deletes; comments kept)              |
+| `import_ads_from_folder`  | `dry_run?`         | Imports all CSV/XLSX exports in the project's `inbox/` (UPSERT), moves them to `processed/`             |
+| `sync_ads_from_meta`      | `since?`, `until?` | Pulls daily ad insights + creatives from the Marketing API (default last 7 days)                        |
+| `get_data_coverage`       | —                  | Dates available, gaps, sources, number of ads/ad sets/campaigns                                         |
 
 **Performance analysis**
 
@@ -240,7 +305,7 @@ with `isError: true` and an actionable `hint`.
 | `get_competitor_website_changes`       | `name?`, `since?`                                 | Added/removed offers, prices, headings, CTAs, social proof                           |
 | `get_competitor_profile`               | `name` (or `"self"`)                              | Latest snapshot, changes, ads, signals, presence score                               |
 | `fetch_competitor_ads`                 | `name?`, `country?`                               | Ad Library API (EU only for commercial ads — says so otherwise)                      |
-| `import_competitor_ads`                | —                                                 | Loads `data/competitors/<name>.csv/.json` you saved by hand                          |
+| `import_competitor_ads`                | —                                                 | Loads the project's `competitors/<name>.csv/.json` saved by hand                     |
 | `get_competitor_ads`                   | `name?`, `active_only?`, `proven_only?`, `limit?` | Stored ads with days running; proven = 30+ days                                      |
 | `record_competitor_signal`             | `name`, `signal`, `value`, `note?`, `date?`       | Manual numbers: `social_followers`, `web_traffic`, `review_count`…                   |
 | `get_ad_library_link`                  | `name`                                            | Public Ad Library URL                                                                |
@@ -258,7 +323,7 @@ with `isError: true` and an actionable `hint`.
 
 | Tool           | Input                                 | Returns                                                        |
 | -------------- | ------------------------------------- | -------------------------------------------------------------- |
-| `save_report`  | `type`, `title`, `markdown`           | Writes `data/reports/YYYY-MM-DD-<type>.md` and indexes it      |
+| `save_report`  | `type`, `title`, `markdown`           | Writes `projects/<client>/reports/YYYY-MM-DD-<type>.md`        |
 | `list_reports` | `type?`, `since?`, `until?`, `limit?` | Saved reports, newest first                                    |
 | `get_report`   | `id?`, `date?`, `type?`               | A report's Markdown (latest of a type if only `type` is given) |
 
@@ -266,7 +331,8 @@ with `isError: true` and an actionable `hint`.
 
 | URI                            | Content                                                                           |
 | ------------------------------ | --------------------------------------------------------------------------------- |
-| `marketing://business-profile` | business.yaml as JSON                                                             |
+| `marketing://projects`         | All client projects and the active one                                            |
+| `marketing://business-profile` | The active project's business.yaml as JSON                                        |
 | `marketing://reports/latest`   | Most recent daily briefing                                                        |
 | `marketing://glossary`         | Metric definitions, formulas, verdict rules, benchmarks (generated from the code) |
 | `marketing://playbook`         | Meta ads best practices — community-editable in `src/mcp/resources/playbook.md`   |
@@ -290,17 +356,19 @@ Details and every other rule: [DECISIONS.md](DECISIONS.md) and the `marketing://
 - **Competitor sales are not public**; positioning is an estimate from observable signals and says so.
 - **Ad Library API**: Meta only returns _commercial_ ads delivered in the **EU** (plus political/issue ads
   worldwide). For other countries (e.g. Bangladesh), browse the public Ad Library (`get_ad_library_link`) and save
-  ads to `data/competitors/<name>.csv` (template: [`examples/competitor-ads-template.csv`](examples/competitor-ads-template.csv)).
+  ads to `projects/<client>/competitors/<name>.csv` (template: [`examples/competitor-ads-template.csv`](examples/competitor-ads-template.csv)).
 - **Websites**: public pages only, robots.txt respected, no JavaScript rendering — content loaded by scripts isn't
   seen. Extraction of prices/offers is heuristic.
 - **Frequency** from daily exports is approximate (daily reach can't be de-duplicated across days).
 - **Market research** uses Claude's own web search; the server stores results but doesn't search.
-- Runs locally for one business per data folder (point `DATA_DIR`/`BUSINESS_CONFIG` elsewhere for another).
+- Runs locally (one workspace per `PROJECTS_DIR`); it is not a hosted multi-user service. The active project is
+  shared by every chat using the same server, so prompts tell Claude to pass `project` explicitly.
 - Only Meta ads in v1; the canonical `ad_daily` model is ready for other sources (Google, TikTok) later.
 
 ## Privacy & security
 
-- `.env`, `config/business.yaml` and everything in `data/` are gitignored. All data stays on your machine; no telemetry.
+- `.env` and everything in `projects/` (profiles, `project.env`, data, reports) are gitignored. All data stays on
+  your machine; no telemetry. Each project is an isolated folder with its own database.
 - The Meta token needs only `ads_read`; tokens are redacted from all logs and error messages.
 - The website fetcher identifies itself, respects robots.txt, waits ≥ 1 s between requests to a site, caps pages at
   3 MB, and never logs in.

@@ -5,10 +5,16 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { recurringTrends } from "../../src/analytics/trends.js";
 import { allPrompts } from "../../src/mcp/prompts/index.js";
-import { allTools } from "../../src/mcp/tools/index.js";
+import { promptCtxFor } from "../../src/mcp/prompts/common.js";
+import { registeredTools } from "../../src/mcp/tools/index.js";
 import { createServer } from "../../src/server.js";
 import type { MarketSnapshot } from "../../src/types/market.js";
-import { createTestContext, importSample } from "../helpers/context.js";
+import {
+  createExampleProject,
+  createTestContext,
+  createTestWorkspace,
+  importSample,
+} from "../helpers/context.js";
 import { call } from "./performanceTools.test.js";
 
 describe("recurringTrends", () => {
@@ -68,11 +74,11 @@ describe("market tools", () => {
 });
 
 describe("prompts", () => {
-  const toolNames = new Set(allTools.map((t) => t.name));
+  const toolNames = new Set(registeredTools.map((t) => t.name));
   it("only reference tools that exist", () => {
     const ctx = createTestContext({ business: "example" });
     for (const p of allPrompts) {
-      const text = p.build({}, ctx);
+      const text = p.build({}, promptCtxFor(ctx));
       const referenced = [...text.matchAll(/`([a-z_]+)`/g)]
         .map((m) => m[1]!)
         .filter((n) =>
@@ -85,11 +91,15 @@ describe("prompts", () => {
   });
   it("work without a business profile", () => {
     const ctx = createTestContext();
-    for (const p of allPrompts) expect(p.build({}, ctx)).toContain("setup_wizard");
+    for (const p of allPrompts) expect(p.build({}, promptCtxFor(ctx))).toContain("setup_wizard");
+    for (const p of allPrompts)
+      expect(p.build({}, { project: null, projects: [], today: () => "2026-10-14" })).toContain(
+        "create_project",
+      );
   });
   it("daily_briefing has the required sections", () => {
     const ctx = createTestContext({ business: "example" });
-    const text = allPrompts.find((p) => p.name === "daily_briefing")!.build({}, ctx);
+    const text = allPrompts.find((p) => p.name === "daily_briefing")!.build({}, promptCtxFor(ctx));
     for (const s of [
       "Market today",
       "Competitors",
@@ -110,8 +120,7 @@ describe("daily briefing end to end (scripted client following the prompt)", () 
       join(import.meta.dirname, "..", "fixtures", "web", "competitor-a-v1.html"),
       "utf8",
     );
-    const ctx = createTestContext({
-      business: "example",
+    const ws = createTestWorkspace({
       fetch: (async (url: string) =>
         url.endsWith("robots.txt")
           ? new Response("", { status: 404 })
@@ -120,9 +129,10 @@ describe("daily briefing end to end (scripted client following the prompt)", () 
               headers: { "content-type": "text/html" },
             })) as typeof fetch,
     });
+    const ctx = createExampleProject(ws, "My Brand");
     // Data arrives the way a user would provide it: an export in the inbox.
     await importSample(ctx);
-    const server = createServer(ctx);
+    const server = createServer(ws);
     const [ct, st] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "briefing", version: "1" });
     await Promise.all([server.connect(st), client.connect(ct)]);

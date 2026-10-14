@@ -17,7 +17,7 @@ export const competitorReport: PromptDef = {
         "1. `list_competitors`.",
         `2. \`snapshot_competitor_websites\`${args.name ? ` with names ["${args.name}"]` : ""} to refresh (skip if a snapshot is from today).`,
         `3. For ${target}: \`get_competitor_profile\`, and \`get_competitor_website_changes\` with since = 30 days ago.`,
-        `4. \`get_competitor_ads\`${args.name ? ` (name "${args.name}")` : ""} — focus on proven ads (30+ days). If none are stored, call \`fetch_competitor_ads\`; if that's unsupported for my country, give me the \`get_ad_library_link\` URLs and explain the manual import (data/competitors/<name>.csv).`,
+        `4. \`get_competitor_ads\`${args.name ? ` (name "${args.name}")` : ""} — focus on proven ads (30+ days). If none are stored, call \`fetch_competitor_ads\`; if that's unsupported for my country, give me the \`get_ad_library_link\` URLs and explain the manual import (projects/<project>/competitors/<name>.csv).`,
         '5. `get_competitive_positioning` and `get_competitor_profile` with name "self" — my own website and signals for comparison.',
         '6. `get_top_creatives` (period "last_30d") — my winning angles, to compare messaging.',
         "7. Optional: a few web searches on the competitor(s) for news, launches, influencer campaigns.",

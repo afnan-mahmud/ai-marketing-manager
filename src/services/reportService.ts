@@ -9,7 +9,7 @@ export const REPORT_TYPE_PATTERN = /^[a-z0-9_]{1,40}$/;
 export class ReportService {
   constructor(private readonly ctx: AppContext) {}
 
-  /** Writes data/reports/YYYY-MM-DD-<type>.md (same day + type overwrites) and records it in the DB. */
+  /** Writes projects/<project>/reports/YYYY-MM-DD-<type>.md (same day + type overwrites) and records it in the DB. */
   save(type: string, title: string, markdown: string) {
     const date = this.ctx.today();
     mkdirSync(this.ctx.paths.reports, { recursive: true });
@@ -46,7 +46,7 @@ export class ReportService {
     if (!existsSync(row.file_path)) {
       throw new NotFoundError(
         `The report file ${row.file_path} no longer exists.`,
-        "It may have been moved or deleted from data/reports/.",
+        "It may have been moved or deleted from projects/<project>/reports/.",
       );
     }
     return {

@@ -95,7 +95,7 @@ export const importCompetitorAds = defineTool({
   name: "import_competitor_ads",
   title: "Import competitor ads (manual)",
   description:
-    "Loads competitor ads you saved by hand from data/competitors/<competitor-name>.csv or .json (columns: date_seen, headline, body, cta, format, landing_url, start_date, is_active). Re-importing updates, never duplicates.",
+    "Loads competitor ads you saved by hand from projects/<project>/competitors/<competitor-name>.csv or .json (columns: date_seen, headline, body, cta, format, landing_url, start_date, is_active). Re-importing updates, never duplicates.",
   inputSchema: {},
   readOnly: false,
   handler: (_a, ctx) => ctx.services.competitors.importAds(),

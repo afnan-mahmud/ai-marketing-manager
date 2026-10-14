@@ -67,11 +67,11 @@ export class AnalyticsService {
     const cfgState = this.ctx.business.load();
     if (cfgState.status === "missing") {
       warnings.push(
-        "No config/business.yaml: using default thresholds and primary KPI = purchases, with no CPA/ROAS targets.",
+        "No projects/<project>/business.yaml: using default thresholds and primary KPI = purchases, with no CPA/ROAS targets.",
       );
     } else if (cfgState.status === "invalid") {
       warnings.push(
-        `config/business.yaml is invalid (${cfgState.issues.join("; ")}); using default thresholds.`,
+        `projects/<project>/business.yaml is invalid (${cfgState.issues.join("; ")}); using default thresholds.`,
       );
     }
     const settings: ClassifySettings = business

@@ -12,6 +12,7 @@ export function resolveFromRoot(p: string): string {
 }
 
 export interface Paths {
+  /** The project folder (projects/<slug>/): everything for one client lives here. */
   dataDir: string;
   inbox: string;
   processed: string;
@@ -20,10 +21,14 @@ export interface Paths {
   reports: string;
   dbFile: string;
   businessConfig: string;
+  projectEnv: string;
   businessExample: string;
 }
 
-export function buildPaths(dataDir: string, businessConfig: string): Paths {
+export function buildPaths(
+  dataDir: string,
+  businessConfig = join(dataDir, "business.yaml"),
+): Paths {
   return {
     dataDir,
     inbox: join(dataDir, "inbox"),
@@ -33,6 +38,7 @@ export function buildPaths(dataDir: string, businessConfig: string): Paths {
     reports: join(dataDir, "reports"),
     dbFile: join(dataDir, "app.db"),
     businessConfig,
+    projectEnv: join(dataDir, "project.env"),
     businessExample: join(PROJECT_ROOT, "config", "business.example.yaml"),
   };
 }

@@ -7,7 +7,7 @@ export const importAdsFromFolder = defineTool({
   name: "import_ads_from_folder",
   title: "Import Meta Ads exports",
   description:
-    "Imports every Meta Ads Manager export (CSV/XLSX, Ads level, breakdown by Day) in data/inbox/ into the database. Re-imports update existing days (no duplicates). Imported files move to data/processed/. Use dry_run to preview.",
+    "Imports every Meta Ads Manager export (CSV/XLSX, Ads level, breakdown by Day) in projects/<project>/inbox/ into the database. Re-imports update existing days (no duplicates). Imported files move to projects/<project>/processed/. Use dry_run to preview.",
   inputSchema: {
     dry_run: z.boolean().optional().describe("Parse and report without writing or moving files."),
   },

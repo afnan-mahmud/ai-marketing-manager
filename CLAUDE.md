@@ -7,6 +7,8 @@
 - Ratios are computed from summed counts, never averaged. Divide-by-zero → null.
 - Read-only toward Meta. Never add ad-editing features.
 - Never fabricate competitor sales; positioning is an estimate from observable signals.
+- Multi-client: everything about a client lives in its project (`projects/<slug>/`, its own DB). Project tools get
+  an `AppContext` for one project and must never read another project's data. Never inherit a client's ad account.
 - Every new tool: zod schema, error mapping, a test, and a README entry.
 - Record non-obvious choices in DECISIONS.md.
 
@@ -18,6 +20,7 @@
 
 ## Where things go
 
-- New tool: `src/mcp/tools/<group>Tools.ts` (use `defineTool`), add to `src/mcp/tools/index.ts`.
+- New tool: `src/mcp/tools/<group>Tools.ts` (use `defineTool`; it gets the optional `project` arg automatically), add to
+  `src/mcp/tools/index.ts`. Workspace-level tools (managing projects) use `defineWorkspaceTool` in `workspaceTools.ts`.
 - New prompt: `src/mcp/prompts/<name>.ts`, add to `src/mcp/prompts/index.ts`.
 - New DB change: new numbered file in `src/db/migrations/` — never edit an applied migration.

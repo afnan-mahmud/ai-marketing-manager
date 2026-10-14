@@ -1,6 +1,6 @@
 import { BusinessStore } from "./config/business.js";
 import type { Env } from "./config/env.js";
-import { buildPaths, resolveFromRoot, type Paths } from "./config/paths.js";
+import { buildPaths, type Paths } from "./config/paths.js";
 import { openDb, type DB } from "./db/client.js";
 import { AdsRepo } from "./db/repositories/adsRepo.js";
 import { CompetitorRepo } from "./db/repositories/competitorRepo.js";
@@ -9,7 +9,16 @@ import { ReportRepo } from "./db/repositories/reportRepo.js";
 import { createServices, type Services } from "./services/index.js";
 import { toIsoDate } from "./utils/dates.js";
 
+export interface ProjectInfo {
+  name: string;
+  slug: string;
+  dir: string;
+  created_at: string;
+}
+
+/** Everything one client project needs: its own env (Meta keys), files, database, profile and services. */
 export interface AppContext {
+  project: ProjectInfo;
   env: Env;
   paths: Paths;
   db: DB;
@@ -25,8 +34,9 @@ export interface AppContext {
 }
 
 export interface ContextOptions {
+  project: ProjectInfo;
   env: Env;
-  /** Pass ":memory:" in tests. Defaults to <DATA_DIR>/app.db. */
+  /** Pass ":memory:" in tests. Defaults to <project dir>/app.db. */
   dbFile?: string;
   now?: () => Date;
   fetch?: typeof fetch;
@@ -34,13 +44,11 @@ export interface ContextOptions {
 }
 
 export function createContext(opts: ContextOptions): AppContext {
-  const paths = buildPaths(
-    resolveFromRoot(opts.env.DATA_DIR),
-    resolveFromRoot(opts.env.BUSINESS_CONFIG),
-  );
+  const paths = buildPaths(opts.project.dir);
   const db = openDb(opts.dbFile ?? paths.dbFile);
   const now = opts.now ?? (() => new Date());
   const ctx = {
+    project: opts.project,
     env: opts.env,
     paths,
     db,

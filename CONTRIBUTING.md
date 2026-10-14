@@ -11,6 +11,7 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) and [CLAUDE.md](CLAUDE.md) first. In sho
 - **Read-only toward Meta.** No features that create, edit, pause or re-budget ads.
 - **Honest data.** Never fabricate competitor sales; ratios come from summed counts; divide-by-zero is `null`.
 - **Never write to stdout** — it belongs to the MCP stdio transport. Use `src/utils/logger.ts` (stderr).
+- **Clients never mix:** each client is a project folder with its own database; tools work inside one project.
 - **Layers:** `mcp/` (parse input, call a service, format output) → `services/` (orchestrate) →
   `analytics/` (pure functions) / `sources/` (external data) / `db/` (the only SQLite access).
 

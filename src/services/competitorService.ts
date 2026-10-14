@@ -365,7 +365,7 @@ export class CompetitorService {
       truncated: ads.length > limit,
       ...(total === 0
         ? {
-            hint: `No competitor ads stored. Run fetch_competitor_ads (EU only), or save ads from the public Ad Library to data/competitors/<name>.csv and run import_competitor_ads.`,
+            hint: `No competitor ads stored. Run fetch_competitor_ads (EU only), or save ads from the public Ad Library to projects/<project>/competitors/<name>.csv and run import_competitor_ads.`,
           }
         : {}),
     };
@@ -443,7 +443,7 @@ export class CompetitorService {
     };
   }
 
-  /** Loads manual competitor ad files: data/competitors/<competitor-name>.csv or .json. Idempotent. */
+  /** Loads manual competitor ad files: projects/<project>/competitors/<competitor-name>.csv or .json. Idempotent. */
   importAds() {
     this.config();
     const dir = this.ctx.paths.competitors;
@@ -517,9 +517,10 @@ export class CompetitorService {
     return {
       summary: files.length
         ? `Imported ${results.reduce((s, r) => s + (("ads" in r && r.ads) || 0), 0)} ad(s) from ${results.filter((r) => r.status === "imported").length}/${files.length} file(s).`
-        : "No files in data/competitors/.",
+        : "No files in projects/<project>/competitors/.",
       expected_format: {
-        file_name: "data/competitors/<competitor-name>.csv (or .json array), e.g. competitor-a.csv",
+        file_name:
+          "projects/<project>/competitors/<competitor-name>.csv (or .json array), e.g. competitor-a.csv",
         columns: [
           "date_seen",
           "headline",
@@ -578,7 +579,7 @@ export class CompetitorService {
         : {
             tip: "Add facebook_page_id to this competitor in business.yaml for an exact page link.",
           }),
-      how_to_save_ads: `Copy ads you see into data/competitors/${slugify(b.name)}.csv (columns: date_seen, headline, body, cta, format, landing_url, start_date, is_active), then run import_competitor_ads.`,
+      how_to_save_ads: `Copy ads you see into projects/<project>/competitors/${slugify(b.name)}.csv (columns: date_seen, headline, body, cta, format, landing_url, start_date, is_active), then run import_competitor_ads.`,
     };
   }
 
