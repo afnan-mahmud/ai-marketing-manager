@@ -1,0 +1,5 @@
+Reporting starts,Reporting ends,Day,Campaign name,Ad set name,Ad name,Amount spent (BDT),Impressions,Reach,Frequency,Clicks (all),Link clicks,CTR (link click-through rate),Landing page views,Adds to cart,Checkouts initiated,Purchases,Purchases conversion value,3-second video plays,ThruPlays,Headline,Body,Call to action,Format
+2026-10-01,2026-10-02,2026-10-01,Camp A,Set 1,Video Ad,"1,250.50",10000,8000,1.25,300,200,2.00,160,20,10,5,6000,3000,700,Glow fast,Try our serum,SHOP_NOW,Video
+2026-10-01,2026-10-02,2026-10-02,Camp A,Set 1,Video Ad,1000,9000,7000,1.29,280,180,2.00,150,18,9,4,4800,2700,650,Glow fast,Try our serum,SHOP_NOW,Video
+2026-10-01,2026-10-02,2026-10-01,Camp A,Set 1,Image Ad,500,4000,3500,1.14,90,50,1.25,40,3,1,0,0,,,Sale,20% off,SHOP_NOW,Image
+,,,,,,2750.50,23000,,,,,,,,,,,,,,,,

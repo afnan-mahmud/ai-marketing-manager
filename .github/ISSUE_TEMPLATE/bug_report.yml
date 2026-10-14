@@ -1,0 +1,33 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the tool or prompt you used and the response (remove any personal or business data).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: If it's an import problem, share only the header row of your export (no data rows).
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Node version (`node -v`), MCP client (Claude Desktop / Claude Code / other)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server log (stderr)
+      description: Tokens are redacted automatically, but double-check before posting.
+      render: text

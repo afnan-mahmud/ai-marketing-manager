@@ -1,0 +1,21 @@
+name: Export format not recognised
+description: An Ads Manager export failed to import or columns were ignored
+labels: [import]
+body:
+  - type: textarea
+    id: headers
+    attributes:
+      label: Header row of the export
+      description: Paste ONLY the first line (column names). No data rows.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Output of import_ads_from_folder (dry_run is fine)
+      render: json
+  - type: input
+    id: lang
+    attributes:
+      label: Ads Manager language / region settings

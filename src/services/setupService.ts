@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import type { AppContext } from "../context.js";
 import { daysBetween } from "../utils/dates.js";
 
-export const IMPORTABLE_EXTENSIONS = [".csv", ".xlsx", ".xls"];
+export const IMPORTABLE_EXTENSIONS = [".csv", ".xlsx", ".xls"]; // .xls is listed so it gets a clear error
 
 export function listInboxFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -35,10 +35,10 @@ export class SetupService {
           : { status: "invalid" as const, path: ctx.business.path, issues: cfg.issues };
     if (cfg.status === "missing") {
       nextSteps.push(
-        "Create config/business.yaml (copy config/business.example.yaml) or run the setup_wizard prompt.",
+        `This project has no business profile: run the setup_wizard prompt for "${ctx.project.slug}" (or update_business_profile).`,
       );
     } else if (cfg.status === "invalid") {
-      nextSteps.push(`Fix config/business.yaml: ${cfg.issues.join("; ")}`);
+      nextSteps.push(`Fix projects/${ctx.project.slug}/business.yaml: ${cfg.issues.join("; ")}`);
     } else if (Object.keys(cfg.config.goals.targets).length === 0) {
       nextSteps.push(
         "Add goals.targets (max_cpa / min_roas) so ads can be judged against your targets.",
@@ -49,7 +49,7 @@ export class SetupService {
     const env = {
       meta_api_configured: metaApiConfigured,
       meta_access_token_set: Boolean(ctx.env.META_ACCESS_TOKEN),
-      meta_ad_account_id_set: Boolean(ctx.env.META_AD_ACCOUNT_ID),
+      meta_ad_account_id: ctx.env.META_AD_ACCOUNT_ID ?? null,
       meta_api_version: ctx.env.META_API_VERSION,
       ad_library_token_set: Boolean(ctx.env.META_AD_LIBRARY_TOKEN || ctx.env.META_ACCESS_TOKEN),
     };
@@ -59,7 +59,7 @@ export class SetupService {
     const today = ctx.today();
     const daysOld = lastDate ? daysBetween(lastDate, today) : null;
     const data = {
-      data_dir: ctx.paths.dataDir,
+      project_dir: ctx.paths.dataDir,
       database: "ok",
       rows: ctx.repos.ads.countRows(),
       data_last_date: lastDate,
@@ -71,23 +71,24 @@ export class SetupService {
 
     if (inboxFiles.length > 0) {
       nextSteps.push(
-        `Run import_ads_from_folder: ${inboxFiles.length} file(s) waiting in data/inbox/.`,
+        `Run import_ads_from_folder: ${inboxFiles.length} file(s) waiting in projects/${ctx.project.slug}/inbox/.`,
       );
     }
     if (!lastDate && inboxFiles.length === 0) {
       nextSteps.push(
         metaApiConfigured
           ? "No ad data yet: run sync_ads_from_meta."
-          : "No ad data yet: export from Ads Manager (Ads level, breakdown by Day) into data/inbox/, or set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID in .env.",
+          : `No ad data yet: export from Ads Manager (Ads level, breakdown by Day) into projects/${ctx.project.slug}/inbox/, or set the ad account with configure_project_meta (+ META_ACCESS_TOKEN).`,
       );
     } else if (daysOld !== null && daysOld > 2 && inboxFiles.length === 0) {
       nextSteps.push(
         metaApiConfigured
           ? `Data is ${daysOld} days old: run sync_ads_from_meta.`
-          : `Data is ${daysOld} days old: drop a fresh Ads Manager export into data/inbox/.`,
+          : `Data is ${daysOld} days old: drop a fresh Ads Manager export into projects/${ctx.project.slug}/inbox/.`,
       );
     }
 
+    if (cfg.status === "ok") ctx.services.competitors.syncFromConfig(cfg.config);
     const competitors = ctx.repos.competitors.list();
     const ready = cfg.status === "ok" && lastDate !== null;
     const summary = ready

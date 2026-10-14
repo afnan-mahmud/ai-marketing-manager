@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a tool, prompt, data source or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What marketing question or task should this help with?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: New tool / prompt / column alias / data source… Remember the server returns facts; Claude does the reasoning.
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: Any change to Meta goes through propose → user confirmation → execute, and the server doesn't call an LLM.

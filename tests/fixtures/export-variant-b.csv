@@ -1,0 +1,4 @@
+Date,Campaign ID,Campaign Name,Ad Set ID,Ad Set Name,Ad ID,Ad Name,Spend,Impressions,Reach,Clicks (link),Website purchases,Website purchases conversion value,Leads,CPM,Some Custom Column
+2026/10/01,111,Camp B,222,Set B,333,Ad B1,$400.00,5000,4500,60,2,2500.00,0,80.00,x
+2026/10/02,111,Camp B,222,Set B,333,Ad B1,$410.00,5100,4600,62,3,3600.00,0,80.39,y
+2026/10/02,111,Camp B,222,Set B,334,Ad B2,$100.00,1000,900,5,—,—,1,100.00,z

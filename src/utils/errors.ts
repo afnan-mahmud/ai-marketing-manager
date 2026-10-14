@@ -15,7 +15,7 @@ export class ConfigMissingError extends AppError {
   constructor(message = "Business profile not found.") {
     super(
       message,
-      "Create config/business.yaml from config/business.example.yaml, or run the setup_wizard prompt / update_business_profile tool.",
+      "This project has no business profile yet. Run the setup_wizard prompt for this project, or call update_business_profile (projects/<project>/business.yaml; template: config/business.example.yaml).",
     );
   }
 }
@@ -23,7 +23,7 @@ export class ConfigMissingError extends AppError {
 export class ConfigInvalidError extends AppError {
   constructor(public readonly issues: string[]) {
     super(
-      `config/business.yaml is invalid: ${issues.join("; ")}`,
+      `projects/<project>/business.yaml is invalid: ${issues.join("; ")}`,
       "Fix the listed fields and retry.",
     );
   }
@@ -33,7 +33,7 @@ export class NoDataError extends AppError {
   constructor(message = "No ad data found for this period.") {
     super(
       message,
-      "Drop a Meta Ads Manager export (Ads level, breakdown by Day) into data/inbox/ and run import_ads_from_folder, or configure META_ACCESS_TOKEN and run sync_ads_from_meta.",
+      "Drop a Meta Ads Manager export (Ads level, breakdown by Day) into projects/<project>/inbox/ and run import_ads_from_folder, or set the project's ad account (configure_project_meta) and run sync_ads_from_meta.",
     );
   }
 }
@@ -46,7 +46,7 @@ export class MetaApiError extends AppError {
   ) {
     super(
       message,
-      "Check META_ACCESS_TOKEN (needs ads_read), META_AD_ACCOUNT_ID (numeric, without act_) and META_API_VERSION in .env.",
+      "Check META_ACCESS_TOKEN (needs ads_read; global .env or the project's project.env), the project's ad account (configure_project_meta) and META_API_VERSION.",
     );
   }
 }
