@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { AppContext } from "../context.js";
-import { toFriendlyError } from "../utils/errors.js";
+import { AppError, toFriendlyError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 
 /** Every tool result starts with a one-line human summary; the rest is structured data. */
@@ -54,7 +54,8 @@ export async function callTool(
     const out = await def.handler(parsed.data, ctx);
     return textResult(out);
   } catch (err) {
-    logger.error(`Tool ${def.name} failed`, err);
+    if (err instanceof AppError) logger.warn(`Tool ${def.name}: ${err.message}`);
+    else logger.error(`Tool ${def.name} failed`, err);
     return textResult(toFriendlyError(err), true);
   }
 }
