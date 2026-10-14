@@ -137,3 +137,12 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   Ad Library or manual imports (usually incomplete) — Claude is told the score is an estimate.
 - `record_competitor_signal` values override derived ones when named after a signal (aliases: `social_followers`,
   `web_traffic`/`monthly_visits`, `review_count`).
+
+## Market
+
+- The server never searches the web; `get_market_context` returns the profile, recent snapshots, recurring trends and
+  **suggested search queries** for Claude's own web search, and `save_market_snapshot` stores what Claude found.
+- **Recurring trends** are grouped by word-set (Jaccard) similarity ≥ 0.5 after removing stop words, so slightly
+  different phrasings of the same trend count together; prompts also ask Claude to reuse the exact wording.
+  `current_streak` counts consecutive snapshot days (ending at the latest snapshot) on which a trend appeared.
+- Several snapshots per day are allowed (each research run is kept).
