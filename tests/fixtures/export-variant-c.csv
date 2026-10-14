@@ -1,0 +1,3 @@
+Reporting starts,Reporting ends,Campaign name,Ad set name,Ad name,Amount spent (BDT),Impressions,Reach,Link clicks,Results,Result indicator,Messaging conversations started
+2026-10-01,2026-10-07,Msg Camp,Dhaka,Chat Ad,"৳12,345.67","১,২৩,৪৫৬","98,000",1500,40,actions:onsite_conversion.messaging_conversation_started_7d,
+2026-10-01,2026-10-07,Lead Camp,All,Lead Ad,"Tk 5,000",50000,40000,800,25,actions:lead,

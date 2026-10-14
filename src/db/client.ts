@@ -43,7 +43,7 @@ export function migrate(db: DB): string[] {
       );
     })();
     newlyApplied.push(file);
-    logger.info(`Applied migration ${file}`);
+    logger.debug(`Applied migration ${file}`);
   }
   return newlyApplied;
 }
