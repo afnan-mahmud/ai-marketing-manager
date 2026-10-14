@@ -19,6 +19,8 @@ export interface Paths {
   competitors: string;
   snapshots: string;
   reports: string;
+  /** Ad images/videos the user wants to run (projects/<client>/creatives/). */
+  creatives: string;
   dbFile: string;
   businessConfig: string;
   projectEnv: string;
@@ -36,6 +38,7 @@ export function buildPaths(
     competitors: join(dataDir, "competitors"),
     snapshots: join(dataDir, "snapshots"),
     reports: join(dataDir, "reports"),
+    creatives: join(dataDir, "creatives"),
     dbFile: join(dataDir, "app.db"),
     businessConfig,
     projectEnv: join(dataDir, "project.env"),

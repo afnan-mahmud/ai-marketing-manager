@@ -9,4 +9,4 @@
 
 - [ ] New/changed tools have a zod schema, error mapping, a test and a README entry
 - [ ] Non-obvious choices are recorded in DECISIONS.md
-- [ ] Still read-only toward Meta; the server still never calls an LLM
+- [ ] Meta changes only via propose → user confirmation → execute; the server still never calls an LLM

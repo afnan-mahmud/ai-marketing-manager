@@ -32,7 +32,7 @@ const MAX_BACKOFF_MS = 16_000;
 /** Above this usage % we log a warning (Meta throttles at 100%). */
 const USAGE_WARN_PCT = 80;
 
-/** Minimal, read-only Graph API wrapper: auth, paging, retries with exponential backoff, rate-limit awareness. */
+/** Minimal Graph API wrapper: auth, paging, retries with exponential backoff, rate-limit awareness. Writes go through post(). */
 export class MetaApiClient {
   private readonly maxRetries: number;
   private readonly baseUrl: string;
@@ -75,13 +75,34 @@ export class MetaApiClient {
     return out;
   }
 
-  private async request<T>(url: string): Promise<T> {
+  /**
+   * Write request (form-encoded, or multipart for file uploads). Writes are NOT retried on network errors or 5xx,
+   * because the change may already have happened; only rate-limit rejections (request refused before running) retry.
+   */
+  async post<T>(
+    path: string,
+    body: Record<string, string | number | undefined> | FormData,
+  ): Promise<T> {
+    let payload: URLSearchParams | FormData;
+    if (body instanceof FormData) payload = body;
+    else {
+      payload = new URLSearchParams();
+      for (const [k, v] of Object.entries(body)) if (v !== undefined) payload.set(k, String(v));
+    }
+    return this.request<T>(this.buildUrl(path), { method: "POST", body: payload });
+  }
+
+  private async request<T>(
+    url: string,
+    init?: { method: "POST"; body: URLSearchParams | FormData },
+  ): Promise<T> {
+    const isWrite = init?.method === "POST";
     for (let attempt = 0; ; attempt++) {
       let res: Response;
       try {
-        res = await this.opts.fetch(url, { headers: { Accept: "application/json" } });
+        res = await this.opts.fetch(url, { headers: { Accept: "application/json" }, ...init });
       } catch (err) {
-        if (attempt < this.maxRetries) {
+        if (!isWrite && attempt < this.maxRetries) {
           await this.backoff(attempt, `network error: ${(err as Error).message}`);
           continue;
         }
@@ -94,11 +115,11 @@ export class MetaApiClient {
       if (res.ok && !body.error) return body;
 
       const e = body.error ?? {};
-      const retryable =
-        res.status === 429 ||
-        res.status >= 500 ||
-        e.is_transient === true ||
-        (e.code !== undefined && RATE_LIMIT_CODES.has(e.code));
+      const rateLimited =
+        res.status === 429 || (e.code !== undefined && RATE_LIMIT_CODES.has(e.code));
+      const retryable = isWrite
+        ? rateLimited
+        : rateLimited || res.status >= 500 || e.is_transient === true;
       if (retryable && attempt < this.maxRetries) {
         await this.backoff(attempt, `HTTP ${res.status} code ${e.code ?? "-"}`);
         continue;
@@ -141,7 +162,7 @@ export class MetaApiClient {
       e.code === 200 ||
       (e.code !== undefined && e.code >= 200 && e.code < 300)
     ) {
-      friendly = `Permission denied by Meta (${msg}). The token needs ads_read and access to this ad account.`;
+      friendly = `Permission denied by Meta (${msg}). Reading needs ads_read; changing ads needs ads_management, access to this ad account and (for new ads) to the Facebook Page.`;
     } else if (e.code !== undefined && RATE_LIMIT_CODES.has(e.code)) {
       friendly = `Meta rate limit reached (${msg}). Wait a while (often 5–60 minutes) and try again.`;
     } else if (e.code === 100)

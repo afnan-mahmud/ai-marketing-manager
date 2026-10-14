@@ -1,5 +1,6 @@
 import type { AnyToolDef, AnyWorkspaceToolDef } from "../tooling.js";
 import { workspaceTools } from "./workspaceTools.js";
+import { adManagerTools } from "./adManagerTools.js";
 import { competitorTools } from "./competitorTools.js";
 import { dataTools } from "./dataTools.js";
 import { marketTools } from "./marketTools.js";
@@ -16,6 +17,7 @@ export const allTools: AnyToolDef[] = [
   ...competitorTools,
   ...marketTools,
   ...reportTools,
+  ...adManagerTools,
 ];
 
 export { workspaceTools };

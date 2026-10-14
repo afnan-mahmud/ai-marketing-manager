@@ -83,7 +83,7 @@ export function houseRules(ctx: PromptCtx): string {
       : "- Express money in the account currency.",
     "- Clearly separate **Facts** (numbers and findings returned by tools — cite ad names and figures) from **Recommendations** (your judgment).",
     "- Never invent numbers. If a tool returns an error, missing data, a stale-data warning or thin data, say so plainly and continue with what is available.",
-    "- This server is read-only toward Meta: recommend actions for the user to take in Ads Manager; never claim you changed anything.",
+    '- Changing anything in Meta Ads Manager (new ads, pause/activate, budgets, duplicates) only ever happens through a `propose_*` tool → the user\'s explicit "yes" to that preview → `execute_ad_action`. Never execute on your own, never bundle several changes under one yes, and never say a change happened unless `execute_ad_action` returned status "executed". If managing ads is off for this project, give the steps for the user to do in Ads Manager instead.',
     "- Competitor rankings are estimates from observable signals, never real sales figures.",
     "- Be concrete and brief: bullet points and tables over long prose. Prioritise.",
   ];

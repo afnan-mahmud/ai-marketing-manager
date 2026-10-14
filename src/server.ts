@@ -37,6 +37,31 @@ export function createServer(ws: Workspace): McpServer {
     },
   );
 
+  // Ads Manager changes are approved by the human in the client's own dialog (MCP elicitation) when supported.
+  ws.setConfirmer(async (req) => {
+    if (!server.server.getClientCapabilities()?.elicitation) return "unsupported";
+    try {
+      const res = await server.server.elicitInput({
+        message: `${req.title}\n\n${req.message}`,
+        requestedSchema: {
+          type: "object",
+          properties: {
+            approve: {
+              type: "boolean",
+              title: "Approve this change in Meta Ads Manager",
+              default: false,
+            },
+          },
+          required: ["approve"],
+        },
+      });
+      return res.action === "accept" && res.content?.approve === true ? "accepted" : "declined";
+    } catch (err) {
+      logger.warn(`Confirmation dialog failed; treating as declined: ${(err as Error).message}`);
+      return "declined";
+    }
+  });
+
   for (const tool of registeredTools) {
     server.registerTool(
       tool.name,
@@ -47,6 +72,7 @@ export function createServer(ws: Workspace): McpServer {
         annotations: {
           readOnlyHint: tool.readOnly ?? true,
           openWorldHint: tool.openWorld ?? false,
+          destructiveHint: tool.destructive ?? false,
         },
       },
       (args: unknown) => callToolInWorkspace(tool, args, ws),

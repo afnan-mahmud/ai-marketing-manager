@@ -22,6 +22,8 @@ export interface ToolDef<S extends z.ZodRawShape = z.ZodRawShape> {
   readOnly?: boolean;
   /** true for tools that reach external services (Meta API, competitor websites). */
   openWorld?: boolean;
+  /** true for tools that change live ads (clients should ask the user before each call). */
+  destructive?: boolean;
   handler: (args: z.infer<z.ZodObject<S>>, ctx: AppContext) => Promise<ToolOutput> | ToolOutput;
 }
 

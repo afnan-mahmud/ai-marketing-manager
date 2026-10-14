@@ -28,7 +28,7 @@ export const syncAdsFromMeta = defineTool({
   name: "sync_ads_from_meta",
   title: "Sync from Meta Marketing API",
   description:
-    "Pulls daily ad-level insights (spend, impressions, clicks, conversions, video views) and ad creatives (headline, text, CTA, format) from the Meta Marketing API into the same tables as exports. Read-only (ads_read). Default: the last 7 days, to capture late attribution.",
+    "Pulls daily ad-level insights (spend, impressions, clicks, conversions, video views) and ad creatives (headline, text, CTA, format) from the Meta Marketing API into the same tables as exports. Only reads (ads_read). Default: the last 7 days, to capture late attribution.",
   inputSchema: {
     since: isoDateSchema.optional().describe("Start date YYYY-MM-DD (default 7 days ago)."),
     until: isoDateSchema.optional().describe("End date YYYY-MM-DD (default yesterday)."),

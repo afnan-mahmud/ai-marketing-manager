@@ -13,7 +13,13 @@ import { format } from "date-fns";
 import type { BusinessPatch } from "./config/business.js";
 import { loadProjectEnv } from "./config/env.js";
 import { buildPaths } from "./config/paths.js";
-import { createContext, type AppContext, type ProjectInfo } from "./context.js";
+import {
+  createContext,
+  type AppContext,
+  type ConfirmRequest,
+  type Confirmer,
+  type ProjectInfo,
+} from "./context.js";
 import { toIsoDate } from "./utils/dates.js";
 import { AppError, NotFoundError } from "./utils/errors.js";
 import { logger } from "./utils/logger.js";
@@ -22,7 +28,7 @@ import { slugify } from "./utils/slug.js";
 const META_FILE = "project.json";
 const ACTIVE_FILE = ".active";
 const ARCHIVE_DIR = "_archived";
-const PROJECT_SUBDIRS = ["inbox", "processed", "competitors", "snapshots", "reports"];
+const PROJECT_SUBDIRS = ["inbox", "processed", "competitors", "snapshots", "reports", "creatives"];
 
 const PROJECT_ENV_TEMPLATE = `# Meta settings for this project only (gitignored). Values here override the global .env.
 # The ad account id is NEVER taken from the global .env — set it here (or with configure_project_meta).
@@ -32,6 +38,16 @@ META_ACCESS_TOKEN=
 # Optional overrides
 META_AD_LIBRARY_TOKEN=
 META_API_VERSION=
+
+# --- Managing ads (off by default) ---
+# true = Claude may PREPARE changes in Ads Manager (new ads from creatives/, pause/activate, budgets, duplicates);
+# each one still runs only after you confirm it. Needs a token with ads_management.
+META_WRITE_ENABLED=false
+# Facebook Page (and optional Instagram account id) new ads are published from
+META_PAGE_ID=
+META_INSTAGRAM_USER_ID=
+# Safety cap: highest daily budget (account currency) a confirmed change may set
+META_MAX_DAILY_BUDGET=
 `;
 
 export interface WorkspaceOptions {
@@ -43,6 +59,8 @@ export interface WorkspaceOptions {
   sleep?: (ms: number) => Promise<void>;
   /** Tests: open every project database in memory. */
   inMemoryDb?: boolean;
+  /** How to ask the human to approve Ads Manager changes (the server wires this to MCP elicitation). */
+  confirm?: Confirmer;
 }
 
 interface CachedContext {
@@ -56,9 +74,16 @@ interface CachedContext {
  */
 export class Workspace {
   private readonly cache = new Map<string, CachedContext>();
+  private confirmer: Confirmer;
 
   constructor(private readonly opts: WorkspaceOptions) {
     mkdirSync(opts.projectsDir, { recursive: true });
+    this.confirmer = opts.confirm ?? (async () => "unsupported");
+  }
+
+  /** Set by the server once it knows how to reach the user (MCP elicitation). */
+  setConfirmer(confirm: Confirmer): void {
+    this.confirmer = confirm;
   }
 
   get projectsDir(): string {
@@ -188,6 +213,7 @@ export class Workspace {
       now: this.opts.now,
       fetch: this.opts.fetch,
       sleep: this.opts.sleep,
+      confirm: (req: ConfirmRequest) => this.confirmer(req),
     });
     this.cache.set(project.slug, { ctx, envMtime: mtime });
     return ctx;

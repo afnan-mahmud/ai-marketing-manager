@@ -38,7 +38,7 @@ export class AdsService {
     if (!token) {
       throw new AppError(
         "The Meta Marketing API is not configured.",
-        "Set META_ACCESS_TOKEN (ads_read only) in the global .env or this project's project.env, and the ad account with configure_project_meta — or use folder import (projects/<project>/inbox/) instead.",
+        "Set META_ACCESS_TOKEN (ads_read; ads_management if this project manages ads) in the global .env or this project's project.env, and the ad account with configure_project_meta — or use folder import (projects/<project>/inbox/) instead.",
       );
     }
     return new MetaApiClient({

@@ -589,7 +589,7 @@ export class AnalyticsService {
         }
       : null;
     return {
-      summary: `${campaigns.over_funded_losers.length + adsets.over_funded_losers.length} over-funded and ${campaigns.under_funded_winners.length + adsets.under_funded_winners.length} under-funded entities found (suggestions only — this server never changes budgets).`,
+      summary: `${campaigns.over_funded_losers.length + adsets.over_funded_losers.length} over-funded and ${campaigns.under_funded_winners.length + adsets.under_funded_winners.length} under-funded entities found (suggestions only — changing a budget needs propose_budget_change + the user's confirmation).`,
       ...this.meta(a),
       method:
         "efficiency_index = share of conversions / share of spend. Under-funded candidate: index ≥ 1.3, or a winner with index ≥ 1. Over-funded candidate: index < 0.7, a loser, or no conversions (with ≥ 5% of spend).",

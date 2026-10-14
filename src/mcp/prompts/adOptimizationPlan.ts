@@ -33,7 +33,11 @@ export const adOptimizationPlan: PromptDef = {
         "- **Budget moves** — from where to where, in currency amounts per day, as suggestions.",
         "- **What to watch** — watchlist ads and the metric/threshold that would change the decision.",
         "",
-        'Finally call `save_report` with type "ad_optimization_plan" and the full Markdown.',
+        'Then call `save_report` with type "ad_optimization_plan" and the full Markdown.',
+        "",
+        "## Applying the plan (only if I want to)",
+        "Ask me which actions to apply. For each one I pick: call `get_meta_structure` for the real ids, then the matching `propose_*` tool",
+        "(`propose_status_change`, `propose_budget_change`, `propose_duplicate`), show me the preview, and call `execute_ad_action` only after I say yes to that preview.",
       ],
       ctx,
     );

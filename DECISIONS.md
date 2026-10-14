@@ -187,3 +187,29 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
 - `npm run build` cleans `dist/` first, so removed modules can't linger in the build output.
 - `scripts/smoke-test.mjs` starts the built server over stdio with a temp data dir and runs a few tools on the
   sample data; CI runs it after the build.
+
+## Ads Manager changes (confirm-first)
+
+- **The original "read-only toward Meta" rule was replaced at the user's request** with: every change is a stored
+  proposal that the user must confirm before it runs. Claude can never execute a change it wasn't asked to make,
+  and the server re-validates at execution time.
+- **Two gates:** Claude is instructed (tool descriptions, prompts) to ask before `execute_ad_action`, and the server
+  asks the human directly via MCP elicitation when the client supports it — Claude can't answer that dialog. Without
+  elicitation support the client's tool-permission prompt for the destructive `execute_ad_action` is the remaining
+  gate; the log records which gate was used. A confirmation dialog that errors counts as "declined".
+- **Off per project by default** (`META_WRITE_ENABLED=false`). It, the Page id, Instagram id and budget cap are
+  project-only settings (never inherited from the global `.env`). `configure_project_meta` may turn it on, but its
+  description says to do so only when the user asks.
+- **Ownership check** (`account_id` of the target equals the project's ad account) before proposing and before
+  executing, so a wrong id can never touch another client's ads.
+- **Initial status is always chosen by the user** (`status` is required on new ads and duplicates; no default).
+- **Budgets** are entered in normal currency units and converted to Meta's minor units (×100, ×1 for zero-decimal
+  currencies such as JPY/KRW/IDR/VND). A budget change is refused if the live budget changed since the preview.
+- **Writes are not retried** on network errors or 5xx (the change may have happened); only rate-limit rejections retry.
+  Multi-step new-ad creation stores each created id as it goes so a failure reports exactly what already exists.
+- **Videos**: uploaded with the simple (non-resumable) endpoint, so ≤ 500 MB; the server polls processing for up to
+  ~4 minutes, then leaves the action in `processing` — calling `execute_ad_action` again resumes without asking again.
+  The preferred Meta thumbnail is used for the video creative.
+- New ads use `object_story_spec` with `link_data` (image) or `video_data` (video) and `instagram_user_id` when set.
+- **Not built:** creating campaigns/ad sets from scratch (targeting, optimisation, bidding, pixels vary too much to do
+  safely here — duplicate an existing ad set instead), deleting, editing creatives of live ads, automated rules.

@@ -35,7 +35,7 @@ export const setupWizard: PromptDef = {
         "Purchases, Purchases conversion value (plus 3-second video plays and ThruPlays for video; Headline/Body help content ideas) →",
         "*Export* → *Export table data* → CSV or XLSX. Put the file in this project's `inbox/` folder (projects/<project>/inbox/), then I'll run `import_ads_from_folder`.",
         "**B) Meta Marketing API (automatic daily sync):** in Business Settings create a *System user*, give it access to the ad account,",
-        "generate a token with only the `ads_read` permission and put it in the global `.env` as `META_ACCESS_TOKEN` (one agency token can serve all clients;",
+        "generate a token with the `ads_read` permission (add `ads_management` only if Claude should create/pause/re-budget ads after your confirmation) and put it in the global `.env` as `META_ACCESS_TOKEN` (one agency token can serve all clients;",
         "a client-specific token can go in projects/<project>/project.env instead). Then set this client's ad account with `configure_project_meta`",
         "(numbers only) and run `sync_ads_from_meta` to pull the last 7 days.",
         "",

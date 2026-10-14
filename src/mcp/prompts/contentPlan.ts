@@ -34,6 +34,7 @@ export const contentPlan: PromptDef = {
         "- **Tests to learn from** — which posts are experiments and how we'll judge them.",
         "",
         'Finally call `save_report` with type "content_plan" and the full Markdown.',
+        "Tell me that when the content is made I can drop the images/videos into this project's `creatives/` folder and use the `launch_ads` prompt to turn them into ads (each one only after my confirmation).",
       ],
       ctx,
     );

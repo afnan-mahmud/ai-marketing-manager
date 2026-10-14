@@ -12,11 +12,13 @@ Ask things like:
 - _"Which of Glow BD's ads are winning and which should we kill?"_
 - _"How is Acme doing vs. its competitors?"_
 - _"Plan next week's content for Glow BD and write 3 video script ideas based on its best ads."_
+- _"I put the new videos in Glow BD's creatives folder — turn them into ads."_ (runs only after you confirm)
+- _"Pause the losers and move ৳500/day to the best ad set."_ (each change previewed, then confirmed by you)
 
 > **The server supplies facts. Claude supplies judgment.**
 > The server loads ad data, computes metrics deterministically, tracks competitors and stores history, and returns
-> structured JSON. Claude does the reasoning. The server never calls an LLM, is **read-only toward Meta**, and keeps
-> all data **on your machine** (no telemetry).
+> structured JSON. Claude does the reasoning. The server never calls an LLM, **never changes anything in Meta on its own**
+> (every Ads Manager change is a preview you confirm first), and keeps all data **on your machine** (no telemetry).
 
 ---
 
@@ -27,6 +29,7 @@ Ask things like:
 - [Connect it to Claude](#connect-it-to-claude)
 - [Client projects](#client-projects)
 - [Daily use](#daily-use)
+- [Managing ads (with your confirmation)](#managing-ads-with-your-confirmation)
 - [Getting a client's ad data in](#getting-a-clients-ad-data-in)
 - [Configuration](#configuration)
 - [Example conversation](#example-conversation)
@@ -49,6 +52,9 @@ Ask things like:
 - **Competitive positioning** — a transparent, _estimated_ Market Presence Score with data coverage and confidence.
 - **Market history** — Claude researches the market with its own web search; the server stores the findings so
   recurring trends become visible ("3rd day in a row").
+- **Managing ads, confirm-first** — turn images/videos from the client's `creatives/` folder into Meta ads, pause or
+  activate, change budgets, duplicate winners. Claude prepares each change as a preview; it runs in Ads Manager only
+  after you confirm it. Off by default per client.
 - **Workflows** — ready-made prompts: daily briefing, ad optimization plan, content plan, script ideas, sales growth
   ideas, competitor report, weekly review, setup wizard. Reports are saved as Markdown in the client's `reports/`.
 
@@ -117,7 +123,8 @@ projects/
 │   ├── inbox/  processed/      # Ads Manager exports for this client
 │   ├── competitors/            # manually saved competitor ads (CSV/JSON)
 │   ├── snapshots/              # competitor website text snapshots
-│   └── reports/                # briefings, plans, reviews (Markdown)
+│   ├── reports/                # briefings, plans, reviews (Markdown)
+│   └── creatives/              # images/videos you want to run as ads
 ├── glow-bd/ …
 └── _archived/                  # archived projects (archive_project)
 ```
@@ -144,6 +151,36 @@ Claude imports/syncs new data, researches the client's market, snapshots its com
 and writes a briefing — _Market today · Competitors · My ads: good/bad · vs competitors · Top 3 actions today ·
 Content idea of the day_ — saved to `projects/<client>/reports/YYYY-MM-DD-daily_briefing.md`.
 
+## Managing ads (with your confirmation)
+
+Claude can also **make changes in Meta Ads Manager** for a client — but never on its own:
+
+1. **Propose** — `propose_new_ad`, `propose_status_change`, `propose_budget_change` or `propose_duplicate` checks
+   everything with Meta (the target belongs to this client's ad account, budgets are within the cap, the file exists)
+   and returns a **preview** with warnings. Nothing changes in Meta yet.
+2. **You confirm** — Claude shows you the preview and asks. Where your MCP client supports it, the server also opens
+   its own approval dialog (MCP elicitation) that only you can answer; otherwise your client's tool-permission prompt
+   for `execute_ad_action` is the gate (keep that tool on "ask every time").
+3. **Execute** — `execute_ad_action` runs exactly that previewed change. Every proposal and result is logged
+   (`list_ad_actions`). Unconfirmed proposals expire after 30 minutes.
+
+**Content → live ad:** make the content from the content plan, drop the files into `projects/<client>/creatives/`
+(jpg/png up to 30 MB, mp4/mov up to 500 MB), then ask _"Launch ads from the new creatives"_ (the `launch_ads` prompt).
+Claude drafts the copy, picks an existing ad set, asks whether each ad should start **ACTIVE** or **PAUSED**, and
+creates each ad only after you confirm it. Meta still reviews every ad before it delivers.
+
+**Turning it on for a client** (off by default):
+
+- Token with `ads_management`; the system user needs access to the ad account and the client's Facebook Page
+  (and Instagram account, if used).
+- _"Enable ad management for Glow BD, Page id 1234567890, max daily budget ৳5,000"_ → `configure_project_meta`
+  (`write_enabled`, `page_id`, `max_daily_budget`), or edit the project's `project.env`.
+
+**Safeguards:** off per client by default · nothing runs without a confirmed preview · one change per confirmation ·
+targets must belong to the project's own ad account · daily-budget cap · budget changes refused if the budget changed
+in Ads Manager after the preview · ±20% budget-jump warning (learning phase) · audit log · new campaigns/ad sets are
+created only by duplicating existing ones (no from-scratch targeting).
+
 ## Getting a client's ad data in
 
 ### Option A — Ads Manager export (no API key)
@@ -164,7 +201,8 @@ about anything it ignored. Missing required columns → a clear error listing wh
 
 1. In **Business Settings → Users → System users**, create a system user and give it access to the clients' ad
    accounts.
-2. **Generate a token** with **only the `ads_read` permission** (this server never needs write access) and put it in
+2. **Generate a token** with the **`ads_read`** permission — add **`ads_management`** only if Claude should create,
+   pause or re-budget ads after your confirmation (and give the system user access to the client's Page) — and put it in
    the global `.env` as `META_ACCESS_TOKEN` — or, for a client with its own Business Manager, in that project's
    `projects/<client>/project.env`.
 3. Set the client's ad account: _"Set Acme's ad account to 123456789"_ → `configure_project_meta`.
@@ -192,8 +230,20 @@ match and data would be double-counted (the sync warns you if it detects this).
 
 ### `projects/<client>/project.env` (per client)
 
-Created with every project. Keys: `META_AD_ACCOUNT_ID` (required for API sync), and optional overrides
-`META_ACCESS_TOKEN`, `META_AD_LIBRARY_TOKEN`, `META_API_VERSION`. Edits are picked up on the next tool call.
+Created with every project (most keys can also be set with `configure_project_meta`). Edits are picked up on the next
+tool call.
+
+| Key                                         | Purpose                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `META_AD_ACCOUNT_ID`                        | This client's ad account (required for API sync and managing ads)                  |
+| `META_ACCESS_TOKEN`                         | Optional client-specific token (otherwise the global one)                          |
+| `META_AD_LIBRARY_TOKEN`, `META_API_VERSION` | Optional overrides                                                                 |
+| `META_WRITE_ENABLED`                        | `true` lets Claude _prepare_ Ads Manager changes for this client (default `false`) |
+| `META_PAGE_ID`, `META_INSTAGRAM_USER_ID`    | Page / Instagram account new ads are published from                                |
+| `META_MAX_DAILY_BUDGET`                     | Safety cap: highest daily budget a confirmed change may set                        |
+
+`META_AD_ACCOUNT_ID`, `META_WRITE_ENABLED`, `META_PAGE_ID`, `META_INSTAGRAM_USER_ID` and `META_MAX_DAILY_BUDGET` are only
+read from the project's own `project.env`, never from the global `.env`.
 
 ### `projects/<client>/business.yaml` (per client)
 
@@ -248,6 +298,7 @@ Without it, analytics still work with default thresholds; competitor/market tool
 | `sales_growth_ideas`   | —                                                      | Ideas across offer, pricing/bundles, landing page, retargeting, creatives, trust/COD/delivery — ranked by impact vs effort |
 | `competitor_report`    | `name?`                                                | Deep dive: offers, pricing, messaging, ad patterns, changes, where you're ahead/behind                                     |
 | `weekly_review`        | —                                                      | Last 7 vs previous 7 days, what worked, scorecard of last week's plan, lessons, next week's plan                           |
+| `launch_ads`           | `files?`                                               | Turns files in `creatives/` into ads: drafts copy, picks ad sets, creates each ad after your confirmation                  |
 | `setup_wizard`         | —                                                      | Guided setup: profile, competitors, data import or API keys                                                                |
 
 All prompts tell Claude to answer in `business.language`, use `business.currency`, separate **facts** from
@@ -319,6 +370,20 @@ Every tool below also accepts an optional **`project`** (client name or folder) 
 | `save_market_snapshot` | `summary`, `trends[]`, `sources[]` | Stores today's research; returns how often each trend recurred                              |
 | `get_market_history`   | `days?` (30)                       | Past snapshots and recurring trends with streaks                                            |
 
+**Managing ads** (changes run only via `execute_ad_action` after the user confirms; off unless `META_WRITE_ENABLED`)
+
+| Tool                    | Input                                                                                                   | What it does                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `get_meta_structure`    | `include_ads?`                                                                                          | Live campaigns / ad sets / ads with real ids, statuses and budgets (read-only)                |
+| `list_creative_files`   | —                                                                                                       | Images/videos in the project's `creatives/` folder and which ads use them                     |
+| `propose_new_ad`        | `file`, `adset_id`, `ad_name`, `primary_text`, `headline?`, `description?`, `cta`, `link_url`, `status` | Preview of a new ad from a creative file in an existing ad set                                |
+| `propose_status_change` | `level`, `object_id`, `new_status`, `reason?`                                                           | Preview of pausing/activating a campaign, ad set or ad                                        |
+| `propose_budget_change` | `level`, `object_id`, `new_daily_budget`, `reason?`                                                     | Preview of a daily budget change (cap enforced)                                               |
+| `propose_duplicate`     | `level`, `object_id`, `status`, `new_name?`, `include_ads?`                                             | Preview of copying an ad or ad set                                                            |
+| `execute_ad_action`     | `action_id`                                                                                             | Runs a confirmed proposal (asks the user directly where supported); resumes processing videos |
+| `cancel_ad_action`      | `action_id`                                                                                             | Drops a pending proposal                                                                      |
+| `list_ad_actions`       | `status?`, `limit?`                                                                                     | Audit log of proposals and executed changes                                                   |
+
 **Reports**
 
 | Tool           | Input                                 | Returns                                                        |
@@ -352,7 +417,9 @@ Details and every other rule: [DECISIONS.md](DECISIONS.md) and the `marketing://
 
 ## Limitations
 
-- **Read-only**: the server never creates, edits, pauses or re-budgets ads — Claude recommends, you act in Ads Manager.
+- **Ads Manager changes are deliberately narrow**: new ads in existing ad sets, pause/activate, daily budgets and
+  duplicates — all confirm-first. New campaigns/ad sets with fresh targeting, bids and rules are made in Ads Manager
+  (or by duplicating an existing ad set). Not tested against the live API in CI (fixture-tested only).
 - **Competitor sales are not public**; positioning is an estimate from observable signals and says so.
 - **Ad Library API**: Meta only returns _commercial_ ads delivered in the **EU** (plus political/issue ads
   worldwide). For other countries (e.g. Bangladesh), browse the public Ad Library (`get_ad_library_link`) and save

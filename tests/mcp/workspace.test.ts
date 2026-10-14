@@ -168,7 +168,11 @@ describe("agency workspace: one folder per client project", () => {
       project: "Client A",
       ad_account_id: "act_111",
     });
-    expect(conf.data.project.meta_api).toEqual({ ad_account_id: "111", token: "set" });
+    expect(conf.data.project.meta_api).toMatchObject({
+      ad_account_id: "111",
+      token: "set",
+      manage_ads: false,
+    });
     await call("configure_project_meta", { project: "Client B", ad_account_id: "222" });
     // Client B gets its own token via its project.env.
     const envB = join(ws.projectsDir, "client-b", "project.env");

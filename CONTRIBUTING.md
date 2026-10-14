@@ -8,7 +8,8 @@ advice, new tools and prompts are all welcome.
 Read [ARCHITECTURE.md](ARCHITECTURE.md) and [CLAUDE.md](CLAUDE.md) first. In short:
 
 - **The server supplies facts, Claude supplies judgment.** Tools return structured JSON; the server never calls an LLM.
-- **Read-only toward Meta.** No features that create, edit, pause or re-budget ads.
+- **No automatic changes to Meta.** Ads Manager changes exist only as propose → user confirmation → execute
+  (`src/services/adManagerService.ts`), are off per project unless enabled, and are logged. Never add a shortcut.
 - **Honest data.** Never fabricate competitor sales; ratios come from summed counts; divide-by-zero is `null`.
 - **Never write to stdout** — it belongs to the MCP stdio transport. Use `src/utils/logger.ts` (stderr).
 - **Clients never mix:** each client is a project folder with its own database; tools work inside one project.

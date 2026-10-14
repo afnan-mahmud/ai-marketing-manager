@@ -26,6 +26,10 @@ function describeProject(ws: Workspace, slug: string) {
     meta_api: {
       ad_account_id: ctx.env.META_AD_ACCOUNT_ID ?? null,
       token: ctx.env.META_ACCESS_TOKEN ? "set" : "missing",
+      manage_ads: ctx.env.META_WRITE_ENABLED,
+      page_id: ctx.env.META_PAGE_ID ?? null,
+      instagram_user_id: ctx.env.META_INSTAGRAM_USER_ID ?? null,
+      max_daily_budget: ctx.env.META_MAX_DAILY_BUDGET ?? null,
     },
     data_last_date: ctx.repos.ads.lastDate(),
   };
@@ -104,7 +108,7 @@ export const configureProjectMeta = defineWorkspaceTool({
   name: "configure_project_meta",
   title: "Configure project Meta settings",
   description:
-    "Sets this client's Meta ad account id (and optionally Facebook API version) in projects/<name>/project.env. Tokens are not accepted here so they don't end up in chat history: the agency-wide token comes from the global .env, or put a client-specific META_ACCESS_TOKEN in the project's project.env file yourself.",
+    "Sets this client's Meta settings in projects/<name>/project.env: ad account id, API version, the Facebook Page / Instagram account new ads are published from, a daily-budget safety cap, and whether Claude may prepare Ads Manager changes (write_enabled — set it only when the user explicitly asks; every change still needs their confirmation). Tokens are not accepted here so they don't end up in chat history: the agency token comes from the global .env, or put a client-specific META_ACCESS_TOKEN in the project's project.env yourself.",
   inputSchema: {
     project: z.string().min(1).optional(),
     ad_account_id: z
@@ -115,22 +119,45 @@ export const configureProjectMeta = defineWorkspaceTool({
       .string()
       .regex(/^v\d+\.\d+$/)
       .optional(),
+    page_id: z.string().regex(/^\d+$/, "numeric Facebook Page id").optional(),
+    instagram_user_id: z.string().regex(/^\d+$/).optional(),
+    max_daily_budget: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Highest daily budget a confirmed change may set (account currency)."),
+    write_enabled: z
+      .boolean()
+      .optional()
+      .describe("Allow preparing Ads Manager changes for this client (only if the user asks)."),
   },
   readOnly: false,
   handler: (args, ws) => {
     const p = ws.configureMeta(args.project, {
       META_AD_ACCOUNT_ID: args.ad_account_id?.replace(/^act_/, ""),
       META_API_VERSION: args.api_version,
+      META_PAGE_ID: args.page_id,
+      META_INSTAGRAM_USER_ID: args.instagram_user_id,
+      META_MAX_DAILY_BUDGET: args.max_daily_budget?.toString(),
+      META_WRITE_ENABLED: args.write_enabled === undefined ? undefined : String(args.write_enabled),
     });
     const info = describeProject(ws, p.slug);
+    const hints: string[] = [];
+    if (info.meta_api.token === "missing")
+      hints.push(
+        `Add META_ACCESS_TOKEN to the global .env, or to ${p.dir}/project.env for this client only.`,
+      );
+    if (info.meta_api.manage_ads) {
+      hints.push(
+        "Managing ads needs a token with ads_management (not only ads_read), and the system user needs access to the Page for new ads.",
+      );
+      if (!info.meta_api.page_id) hints.push("Set page_id so new ads can be created.");
+      if (!info.meta_api.max_daily_budget) hints.push("Consider a max_daily_budget safety cap.");
+    }
     return {
-      summary: `Updated Meta settings for "${p.name}" (ad account ${info.meta_api.ad_account_id ?? "not set"}, token ${info.meta_api.token}).`,
+      summary: `Updated Meta settings for "${p.name}" (ad account ${info.meta_api.ad_account_id ?? "not set"}, token ${info.meta_api.token}, managing ads ${info.meta_api.manage_ads ? "ON — every change needs confirmation" : "off"}).`,
       project: info,
-      ...(info.meta_api.token === "missing"
-        ? {
-            hint: `Add META_ACCESS_TOKEN (ads_read) to the global .env, or to ${p.dir}/project.env for this client only.`,
-          }
-        : {}),
+      ...(hints.length ? { hints } : {}),
     };
   },
 });

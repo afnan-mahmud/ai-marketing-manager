@@ -1,4 +1,5 @@
 import type { AppContext } from "../context.js";
+import { AdManagerService } from "./adManagerService.js";
 import { AdsService } from "./adsService.js";
 import { AnalyticsService } from "./analyticsService.js";
 import { CompetitorService } from "./competitorService.js";
@@ -15,6 +16,7 @@ export interface Services {
   competitors: CompetitorService;
   positioning: PositioningService;
   market: MarketService;
+  adManager: AdManagerService;
 }
 
 export function createServices(ctx: AppContext): Services {
@@ -26,5 +28,6 @@ export function createServices(ctx: AppContext): Services {
     competitors: new CompetitorService(ctx),
     positioning: new PositioningService(ctx),
     market: new MarketService(ctx),
+    adManager: new AdManagerService(ctx),
   };
 }

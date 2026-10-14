@@ -2,7 +2,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import dotenv from "dotenv";
 import { join } from "node:path";
-import { loadEnv } from "./config/env.js";
+import { loadEnv, PROJECT_ONLY_KEYS } from "./config/env.js";
 import { PROJECT_ROOT, resolveFromRoot } from "./config/paths.js";
 import { createServer } from "./server.js";
 import { logger } from "./utils/logger.js";
@@ -13,9 +13,10 @@ async function main(): Promise<void> {
   dotenv.config({ path: join(PROJECT_ROOT, ".env"), quiet: true });
   const env = loadEnv();
   logger.setLevel(env.LOG_LEVEL);
-  if (process.env.META_AD_ACCOUNT_ID) {
+  const ignored = PROJECT_ONLY_KEYS.filter((k) => process.env[k]);
+  if (ignored.length) {
     logger.warn(
-      "META_AD_ACCOUNT_ID in the global .env is ignored: set each client's ad account in its project (configure_project_meta).",
+      `${ignored.join(", ")} in the global .env ${ignored.length > 1 ? "are" : "is"} ignored: these are set per client project (configure_project_meta / project.env).`,
     );
   }
   const ws = new Workspace({

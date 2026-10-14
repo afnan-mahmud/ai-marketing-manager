@@ -4,7 +4,8 @@
 > Build it phase by phase (see §14). Do not skip the acceptance criteria. When something here is
 > ambiguous, choose the simplest option that satisfies the acceptance criteria and note it in `DECISIONS.md`.
 >
-> **Status:** all phases (0–7) are implemented, plus §18 (agency workspace: one project per client). Where the implementation had to choose or deviate
+> **Status:** all phases (0–7) are implemented, plus §18 (agency workspace: one project per client) and §19
+> (confirm-first Ads Manager changes). Where the implementation had to choose or deviate
 > (e.g. Node ≥ 22, `exceljs` instead of `xlsx`, the own brand stored as an `is_self` competitor), the reasoning is in
 > [`DECISIONS.md`](DECISIONS.md).
 
@@ -54,7 +55,8 @@ This keeps the server cheap, testable, and model-agnostic.
 
 ### Out of scope (v1) — do NOT build
 
-- Creating, editing, pausing, or changing budgets on ads (the server is **read-only** toward Meta).
+- ~~Creating, editing, pausing, or changing budgets on ads~~ — added later as **confirm-first** actions (§19): nothing
+  runs without the user's explicit confirmation of a preview, and it is off per project by default.
 - Any LLM API calls from the server.
 - Scraping behind logins, bypassing robots.txt, or scraping Facebook/Instagram pages directly.
 - A web UI/dashboard (possible v2).
@@ -604,3 +606,32 @@ projects/<client-slug>/
 - **Resources** read the active project; `marketing://projects` lists all projects.
 - **Isolation rules:** one database per project; the ad account id is per project only (never inherited from the global
   `.env`); the agency token may be shared via the global `.env` or overridden per project.
+
+---
+
+## 19. Ads Manager changes — confirm-first
+
+The agency asked for Claude to be able to run ads from a project and apply its own suggestions, **but only when the
+user says so**. This replaces the original "read-only toward Meta" rule with a stricter one: _no change to Meta
+without an explicit, per-change user confirmation_.
+
+**Flow** (`src/services/adManagerService.ts`, `src/sources/metaApi/manage.ts`, table `ad_actions` in migration 003):
+
+1. `propose_new_ad` / `propose_status_change` / `propose_budget_change` / `propose_duplicate` validate against Meta
+   (object exists and belongs to the project's ad account; Page set; file inside `creatives/`; budget ≤ cap) and store
+   a pending action with a preview. They make no changes.
+2. Claude shows the preview and asks the user. `execute_ad_action` then asks the human again through **MCP
+   elicitation** when the client supports it (the server's own approval dialog; decline/unticked = cancelled). If the
+   client can't show it, the client's tool-permission prompt is the gate (`destructiveHint: true`), recorded as
+   `confirmed_via: tool_permission`.
+3. Execution runs exactly the stored parameters; results (ids) and failures, including partial results, are logged.
+
+**Scope:** new ads (image/video upload → creative → ad) in an existing ad set; pause/activate campaign, ad set or
+ad; daily budget of an ad set or campaign-budget campaign; duplicate ad or ad set (`/copies`). Not in scope: creating
+campaigns/ad sets from scratch (targeting, bidding), deleting anything, editing live creatives.
+
+**Safeguards:** `META_WRITE_ENABLED` per project (off by default; never inherited from the global `.env`), 30-minute
+proposal expiry, ownership check before proposing and again before executing, budget cap
+(`META_MAX_DAILY_BUDGET`), stale-budget check, ±20% budget-jump warning, POST requests never retried after network
+errors or 5xx (only on rate-limit rejections), audit log (`list_ad_actions`). Video ads resume after Meta's
+processing without a second confirmation.
