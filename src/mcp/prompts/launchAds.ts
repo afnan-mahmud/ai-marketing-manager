@@ -17,6 +17,7 @@ export const launchAds: PromptDef = {
         "I've put new content in this project's `creatives/` folder. Help me turn it into ads.",
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         "1. `get_setup_status` and `list_ad_actions` (status pending) — if managing ads is off for this project, stop and explain how to enable it (`configure_project_meta` with write_enabled, page_id; token with ads_management). Don't enable it unless I ask.",
         `2. \`list_creative_files\`${args.files ? ` — use only: ${args.files}` : " — use the files that are not in an ad yet"}.`,
         '3. Context for the copy: `get_report` (type "content_plan") to match each file to its planned angle/hook, `get_top_creatives` (period "last_30d") for wording that works, and `get_business_profile` for brand voice, language, offer and landing page.',

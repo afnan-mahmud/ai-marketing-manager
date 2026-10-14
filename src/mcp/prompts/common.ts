@@ -85,6 +85,8 @@ export function houseRules(ctx: PromptCtx): string {
     "- Never invent numbers. If a tool returns an error, missing data, a stale-data warning or thin data, say so plainly and continue with what is available.",
     '- Changing anything in Meta Ads Manager (new ads, pause/activate, budgets, duplicates) only ever happens through a `propose_*` tool → the user\'s explicit "yes" to that preview → `execute_ad_action`. Never execute on your own, never bundle several changes under one yes, and never say a change happened unless `execute_ad_action` returned status "executed". If managing ads is off for this project, give the steps for the user to do in Ads Manager instead.',
     "- Competitor rankings are estimates from observable signals, never real sales figures.",
+    "- **Use this client's memory like an experienced manager:** read `get_memory_briefing` before advising. Build on 'do' lessons, don't repeat 'avoid' lessons unless today's data clearly shows things changed (then say so and update the lesson with `update_learning`). Cite lesson ids (#n) when memory drives a recommendation.",
+    "- **Learn:** when the data shows something reusable (a pattern that won or lost, an outcome of a change), save it with `record_learning` — evidence-based only (numbers in `evidence`), a few strong lessons rather than many weak ones.",
     "- Be concrete and brief: bullet points and tables over long prose. Prioritise.",
   ];
   return lines.join("\n");

@@ -16,6 +16,7 @@ export const adOptimizationPlan: PromptDef = {
         "You are my performance marketing manager. Build an ad optimization plan from my real data.",
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         "1. `get_setup_status` — if files are waiting in the inbox run `import_ads_from_folder`; if the Meta API is configured and data is stale run `sync_ads_from_meta`.",
         `2. \`get_performance_summary\` with period "${period}".`,
         `3. \`get_winners_and_losers\` with period "${period}" and \`get_breakdown\` (level "adset", period "${period}").`,

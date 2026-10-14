@@ -72,6 +72,18 @@ export const allResources: ResourceDef[] = [
       "_No daily briefing saved yet. Run the daily_briefing prompt._\n",
   },
   {
+    name: "memory",
+    uri: "marketing://memory",
+    title: "Marketing memory",
+    description:
+      "What the active project's marketing manager has learned: do / avoid lessons and insights (Markdown).",
+    mimeType: "text/markdown",
+    read: (ctx) => {
+      ctx.services.memory.writeMemoryFile();
+      return readFileSync(join(ctx.paths.dataDir, "memory.md"), "utf8");
+    },
+  },
+  {
     name: "glossary",
     uri: "marketing://glossary",
     title: "Metric glossary",

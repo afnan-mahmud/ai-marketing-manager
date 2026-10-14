@@ -18,6 +18,9 @@ export interface AdAction {
   confirmed_via: string | null;
   result: Record<string, unknown> | null;
   error: string | null;
+  outcome: Record<string, unknown> | null;
+  outcome_reviewed_at: string | null;
+  learning_id: number | null;
 }
 
 interface Row {
@@ -33,6 +36,9 @@ interface Row {
   confirmed_via: string | null;
   result_json: string | null;
   error: string | null;
+  outcome_json: string | null;
+  outcome_reviewed_at: string | null;
+  learning_id: number | null;
 }
 
 const toAction = (r: Row): AdAction => ({
@@ -48,6 +54,9 @@ const toAction = (r: Row): AdAction => ({
   confirmed_via: r.confirmed_via,
   result: r.result_json ? JSON.parse(r.result_json) : null,
   error: r.error,
+  outcome: r.outcome_json ? JSON.parse(r.outcome_json) : null,
+  outcome_reviewed_at: r.outcome_reviewed_at,
+  learning_id: r.learning_id,
 });
 
 /** Audit log + state machine for Meta changes (proposed → confirmed → executed). */
@@ -98,14 +107,27 @@ export class ActionsRepo {
 
   update(
     id: string,
-    patch: Partial<Pick<AdAction, "status" | "decided_at" | "confirmed_via" | "result" | "error">>,
+    patch: Partial<
+      Pick<
+        AdAction,
+        | "status"
+        | "decided_at"
+        | "confirmed_via"
+        | "result"
+        | "error"
+        | "outcome"
+        | "outcome_reviewed_at"
+        | "learning_id"
+      >
+    >,
   ): AdAction {
     const sets: string[] = [];
     const vals: unknown[] = [];
     for (const [k, v] of Object.entries(patch)) {
       if (v === undefined) continue;
-      sets.push(`${k === "result" ? "result_json" : k} = ?`);
-      vals.push(k === "result" ? JSON.stringify(v) : v);
+      const json = k === "result" || k === "outcome";
+      sets.push(`${json ? `${k}_json` : k} = ?`);
+      vals.push(json ? JSON.stringify(v) : v);
     }
     if (sets.length)
       this.db.prepare(`UPDATE ad_actions SET ${sets.join(", ")} WHERE id = ?`).run(...vals, id);

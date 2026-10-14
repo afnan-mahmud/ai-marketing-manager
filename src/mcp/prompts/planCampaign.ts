@@ -18,6 +18,7 @@ export const planCampaign: PromptDef = {
         `Plan a new Meta campaign for this client${args.goal ? ` — goal: ${args.goal}` : ""}${args.budget ? `, around ${args.budget} per day` : ""}.`,
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         "1. `get_setup_status` and `get_business_profile` (products, audience, goals, monthly budget, targets).",
         '2. What already works: `get_breakdown` (level "adset" and "campaign", period "last_30d"), `get_winners_and_losers`, `get_top_creatives` — audiences, objectives and angles with the best CPA/ROAS. Use `get_budget_recommendations_data` for budget pacing.',
         "3. `get_meta_structure` — existing campaigns, so the new one doesn't overlap or compete with a running audience.",

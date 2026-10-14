@@ -6,6 +6,7 @@ import { ActionsRepo } from "./db/repositories/actionsRepo.js";
 import { AdsRepo } from "./db/repositories/adsRepo.js";
 import { CompetitorRepo } from "./db/repositories/competitorRepo.js";
 import { MarketRepo } from "./db/repositories/marketRepo.js";
+import { MemoryRepo } from "./db/repositories/memoryRepo.js";
 import { ReportRepo } from "./db/repositories/reportRepo.js";
 import { createServices, type Services } from "./services/index.js";
 import { toIsoDate } from "./utils/dates.js";
@@ -30,6 +31,7 @@ export interface AppContext {
     market: MarketRepo;
     reports: ReportRepo;
     actions: ActionsRepo;
+    memory: MemoryRepo;
   };
   services: Services;
   /** Current time (injectable for tests). */
@@ -81,6 +83,7 @@ export function createContext(opts: ContextOptions): AppContext {
       market: new MarketRepo(db),
       reports: new ReportRepo(db),
       actions: new ActionsRepo(db),
+      memory: new MemoryRepo(db),
     },
     now,
     today: () => toIsoDate(now()),

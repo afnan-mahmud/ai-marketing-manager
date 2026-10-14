@@ -4,6 +4,7 @@ import { adManagerTools } from "./adManagerTools.js";
 import { competitorTools } from "./competitorTools.js";
 import { dataTools } from "./dataTools.js";
 import { marketTools } from "./marketTools.js";
+import { memoryTools } from "./memoryTools.js";
 import { performanceTools } from "./performanceTools.js";
 import { profileTools } from "./profileTools.js";
 import { reportTools } from "./reportTools.js";
@@ -17,6 +18,7 @@ export const allTools: AnyToolDef[] = [
   ...competitorTools,
   ...marketTools,
   ...reportTools,
+  ...memoryTools,
   ...adManagerTools,
 ];
 

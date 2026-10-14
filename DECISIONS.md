@@ -238,3 +238,24 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   (`propose_new_adset` into it, or pause it).
 - Meta enforces minimum daily budgets per currency and objective; we don't duplicate those rules — Meta's error is
   returned to the user.
+
+## Memory (learning per client)
+
+- **Claude writes lessons, the server keeps them honest.** The server never generates lessons (no LLM); it stores what
+  Claude records, merges repeats, flags contradictions, ranks, and supplies before/after facts for confirmed changes.
+- **Per project** (table `learnings` in the client's own DB) — one client's lessons never influence another's. An
+  agency-wide memory was left out on purpose: what works for a skincare brand in Dhaka may be wrong for a restaurant.
+- **Same lesson = same category + word overlap ≥ 0.5** (stop-word-free Jaccard, as for market trends). Same kind →
+  confirmation (evidence replaced by the newest, history kept); `do` vs `avoid` → new lesson + contradiction on the old
+  one, reported as a conflict for the user to resolve. `insight` never conflicts.
+- **Confidence** never goes down automatically; it rises to at least medium at 2 confirmations and high at 5, or to
+  whatever Claude/the user sets. **Score** = confidence weight (0.5/1/1.5) × (1 + log2 confirmations) × 0.5^(days since
+  last confirmation / 90) ÷ (1 + contradictions) — used for ordering only.
+- Lessons must be at least a sentence (≥ 10 chars) with evidence; vague notes are rejected.
+- **Action outcomes:** for executed actions older than 3 days, the target (by real Meta id) is compared over up to 7
+  days after vs the same number of days before; the account totals are compared too, since pausing one ad moves spend
+  elsewhere. New ads/ad sets/campaigns/duplicates get a verdict with the normal rules. Recording a lesson with the
+  action's id marks it reviewed. Outcomes are facts; deciding causality (other changes in the same window) is left to
+  Claude and the prompts say so.
+- `memory.md` is regenerated from the database on every change; it is a read-only view, edits go through
+  `update_learning`.

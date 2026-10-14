@@ -20,6 +20,7 @@ export const contentPlan: PromptDef = {
         `Plan ${days} days of content for ${platform}, starting ${tomorrow(ctx)}. Every idea must be traceable to data.`,
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         "1. `get_business_profile` — products, audience, brand voice, language.",
         '2. `get_top_creatives` (period "last_30d", by "cpa", limit 5) and again with by "hook_rate" — what angle, hook, format and offer do my winners share?',
         '3. `get_winners_and_losers` (period "last_30d") — note which patterns lose, to avoid them.',

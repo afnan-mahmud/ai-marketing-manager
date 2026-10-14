@@ -29,6 +29,7 @@ export const scriptIdeas: PromptDef = {
         `Write ${count} ${format} ad script(s)${args.angle ? ` with the angle "${args.angle}"` : ""} based on what already works for me.`,
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         "1. `get_business_profile` — product details, prices, audience, brand voice.",
         '2. `get_top_creatives` (period "last_30d", by "cpa") and (by "hook_rate") — study the winners\' hooks, angles, offers, CTAs and formats.',
         '3. `get_winners_and_losers` (period "last_30d") — what do losers have in common? Avoid it.',

@@ -30,6 +30,7 @@ Ask things like:
 - [Client projects](#client-projects)
 - [Daily use](#daily-use)
 - [Managing ads (with your confirmation)](#managing-ads-with-your-confirmation)
+- [Memory: learning like a human manager](#memory-learning-like-a-human-manager)
 - [Getting a client's ad data in](#getting-a-clients-ad-data-in)
 - [Configuration](#configuration)
 - [Example conversation](#example-conversation)
@@ -56,6 +57,9 @@ Ask things like:
   turn images/videos from the client's `creatives/` folder into Meta ads, pause or activate, change budgets,
   duplicate winners. Claude prepares each change as a preview; it runs in Ads Manager only
   after you confirm it. Off by default per client.
+- **Memory that learns** — after each analysis Claude saves evidence-based lessons per client (what worked, what to
+  avoid, insights); repeated lessons gain confidence, contradicted ones are flagged, old ones fade. Every briefing and
+  plan starts from this memory, and the real results of confirmed Ads Manager changes are reviewed and learned from.
 - **Workflows** — ready-made prompts: daily briefing, ad optimization plan, content plan, script ideas, sales growth
   ideas, competitor report, weekly review, setup wizard. Reports are saved as Markdown in the client's `reports/`.
 
@@ -125,6 +129,7 @@ projects/
 │   ├── competitors/            # manually saved competitor ads (CSV/JSON)
 │   ├── snapshots/              # competitor website text snapshots
 │   ├── reports/                # briefings, plans, reviews (Markdown)
+│   ├── memory.md               # what the manager has learned about this client (generated)
 │   └── creatives/              # images/videos you want to run as ads
 ├── glow-bd/ …
 └── _archived/                  # archived projects (archive_project)
@@ -192,6 +197,27 @@ your yes. Supported objectives: **Sales** and **Leads** (website, using the proj
 targets must belong to the project's own ad account · daily-budget cap · budget changes refused if the budget changed
 in Ads Manager after the preview · ±20% budget-jump warning (learning phase) · audit log · a new campaign's empty ad
 set spends nothing until an ad is added and confirmed.
+
+## Memory: learning like a human manager
+
+Each client project has its own **memory** of lessons, stored in its database and mirrored to
+`projects/<client>/memory.md` for people to read:
+
+- **do** — what worked and should be repeated (e.g. _"UGC testimonial videos beat discount banners for women 20-35 in
+  Dhaka"_), **avoid** — what failed, **insight** — market/audience facts. Each lesson has a category (creative, copy,
+  offer, audience, budget, funnel, timing, market, competitor), the evidence behind it, and a confidence.
+- **Learning loop:** the `daily_briefing` and `weekly_review` prompts start with `get_memory_briefing` and end with
+  `record_learning` for new, evidence-backed lessons. Saying the same thing again **confirms** the lesson (confidence
+  rises: 2× → medium, 5× → high) instead of duplicating it; a lesson that **contradicts** an existing one is flagged
+  so Claude asks you which holds. Lessons not re-confirmed fade (half weight after 90 days) and can be retired.
+- **Recall:** every plan/content/script/launch prompt reads the memory first, builds on "do" lessons, avoids "avoid"
+  lessons unless today's data clearly shows a change, and cites the lesson ids it used.
+- **Learning from its own actions:** `review_action_outcomes` compares each confirmed Ads Manager change (new ad,
+  campaign, pause, budget change, duplicate) with the days before it — target and whole account — so Claude can record
+  whether the change actually worked. (Needs data with real Meta ids, i.e. API sync or exports with the "Ad ID" column.)
+- You stay in charge: tell Claude _"that lesson is wrong"_ and it retires or edits it (`update_learning`).
+
+The server never invents lessons — Claude writes them from the data; the server de-duplicates, ranks and remembers.
 
 ## Getting a client's ad data in
 
@@ -401,6 +427,16 @@ Every tool below also accepts an optional **`project`** (client name or folder) 
 | `cancel_ad_action`      | `action_id`                                                                                             | Drops a pending proposal                                                                      |
 | `list_ad_actions`       | `status?`, `limit?`                                                                                     | Audit log of proposals and executed changes                                                   |
 
+**Memory**
+
+| Tool                     | Input                                                                                                    | What it does                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `get_memory_briefing`    | —                                                                                                        | Strongest do/avoid lessons, insights, conflicts, stale lessons, changes waiting for review |
+| `get_learnings`          | `category?`, `kind?`, `query?`, `include_retired?`, `limit?`                                             | Lessons ranked by confidence × confirmations × recency                                     |
+| `record_learning`        | `statement`, `kind`, `category`, `evidence`, `confidence?`, `source?`, `tags?`, `related?`, `action_id?` | Saves a lesson (or confirms the matching one; flags contradictions)                        |
+| `update_learning`        | `id`, `action` (confirm/contradict/retire/reactivate/edit), `note?`, `statement?`, `confidence?`         | Maintains a lesson                                                                         |
+| `review_action_outcomes` | `min_days?`, `include_reviewed?`                                                                         | Before/after facts for confirmed Ads Manager changes                                       |
+
 **Reports**
 
 | Tool           | Input                                 | Returns                                                        |
@@ -416,6 +452,7 @@ Every tool below also accepts an optional **`project`** (client name or folder) 
 | `marketing://projects`         | All client projects and the active one                                            |
 | `marketing://business-profile` | The active project's business.yaml as JSON                                        |
 | `marketing://reports/latest`   | Most recent daily briefing                                                        |
+| `marketing://memory`           | The active project's lessons (Markdown)                                           |
 | `marketing://glossary`         | Metric definitions, formulas, verdict rules, benchmarks (generated from the code) |
 | `marketing://playbook`         | Meta ads best practices — community-editable in `src/mcp/resources/playbook.md`   |
 

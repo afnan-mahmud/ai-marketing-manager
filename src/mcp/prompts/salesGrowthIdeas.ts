@@ -13,6 +13,7 @@ export const salesGrowthIdeas: PromptDef = {
         "Find the highest-leverage ways to get more sales, based on where my funnel leaks and what the market offers.",
         "",
         "## Steps",
+        "0. `get_memory_briefing` (and `get_learnings` with relevant words) — reuse what worked for this client, avoid what failed, and say which lessons (#id) shaped the result.",
         '1. `get_performance_summary` (period "last_30d") and `get_funnel_diagnostics` (period "last_30d") — where is the biggest drop-off?',
         '2. `get_budget_recommendations_data` (period "last_30d") — is budget in the right places?',
         "3. `get_business_profile` — products, prices, margins (ideas must protect margin).",

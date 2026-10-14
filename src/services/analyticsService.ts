@@ -61,6 +61,23 @@ export class AnalyticsService {
    * unless stored data ends earlier — then they anchor to the last data day (with a warning) so the
    * analysis still covers real data.
    */
+  /** Verdict thresholds and targets from business.yaml, or defaults. */
+  classifySettings(
+    business: BusinessConfig | null = this.ctx.business.tryLoad(),
+  ): ClassifySettings {
+    return business
+      ? {
+          primary_kpi: business.goals.primary_kpi,
+          targets: business.goals.targets,
+          ...business.classification,
+        }
+      : {
+          primary_kpi: defaultAnalysisSettings.primary_kpi,
+          targets: defaultAnalysisSettings.targets,
+          ...defaultAnalysisSettings.classification,
+        };
+  }
+
   prepare(period: Period): AnalysisContext {
     const warnings: string[] = [];
     const business = this.ctx.business.tryLoad();
@@ -74,17 +91,7 @@ export class AnalyticsService {
         `projects/<project>/business.yaml is invalid (${cfgState.issues.join("; ")}); using default thresholds.`,
       );
     }
-    const settings: ClassifySettings = business
-      ? {
-          primary_kpi: business.goals.primary_kpi,
-          targets: business.goals.targets,
-          ...business.classification,
-        }
-      : {
-          primary_kpi: defaultAnalysisSettings.primary_kpi,
-          targets: defaultAnalysisSettings.targets,
-          ...defaultAnalysisSettings.classification,
-        };
+    const settings = this.classifySettings(business);
 
     const lastDate = this.ctx.repos.ads.lastDate();
     if (!lastDate) throw new NoDataError("No ad data has been imported yet.");

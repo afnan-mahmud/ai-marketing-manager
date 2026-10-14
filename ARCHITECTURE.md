@@ -638,3 +638,19 @@ proposal expiry, ownership check before proposing and again before executing, bu
 (`META_MAX_DAILY_BUDGET`), stale-budget check, ±20% budget-jump warning, POST requests never retried after network
 errors or 5xx (only on rate-limit rejections), audit log (`list_ad_actions`). Video ads resume after Meta's
 processing without a second confirmation.
+
+---
+
+## 20. Memory — learning per client
+
+`src/services/memoryService.ts`, `src/analytics/memory.ts` (pure scoring/matching), table `learnings` and outcome
+columns on `ad_actions` (migration 004).
+
+- **Write:** Claude calls `record_learning` (do / avoid / insight, category, evidence, confidence) after analysis; the
+  server merges repeats into confirmations, flags contradictions, and regenerates `projects/<client>/memory.md`.
+- **Recall:** `get_memory_briefing` / `get_learnings` return lessons ranked by confidence × confirmations × recency ÷
+  contradictions. All workflow prompts read the memory first and cite lesson ids; house rules tell Claude not to repeat
+  "avoid" lessons without new evidence.
+- **Close the loop:** `review_action_outcomes` gives before/after facts for confirmed Ads Manager changes; lessons
+  recorded with `action_id` mark them reviewed.
+- **Maintain:** `update_learning` confirm / contradict / retire / reactivate / edit; lessons fade with a 90-day half-life.

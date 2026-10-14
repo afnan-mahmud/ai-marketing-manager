@@ -72,6 +72,7 @@ describe("MCP server surface", () => {
     expect(resources.map((r) => r.uri).sort()).toEqual([
       "marketing://business-profile",
       "marketing://glossary",
+      "marketing://memory",
       "marketing://playbook",
       "marketing://projects",
       "marketing://reports/latest",
