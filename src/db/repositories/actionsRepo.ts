@@ -2,7 +2,8 @@ import type { DB } from "../client.js";
 
 export type ActionStatus =
   "pending" | "executing" | "processing" | "executed" | "failed" | "cancelled" | "expired";
-export type ActionType = "new_ad" | "status_change" | "budget_change" | "duplicate";
+export type ActionType =
+  "new_ad" | "new_campaign" | "new_adset" | "status_change" | "budget_change" | "duplicate";
 
 export interface AdAction {
   id: string;

@@ -3,6 +3,17 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import type { AppContext, ConfirmDecision } from "../context.js";
 import type { ActionType, AdAction } from "../db/repositories/actionsRepo.js";
+import {
+  adSetPayload,
+  buildTargeting,
+  campaignPayload,
+  createAdSet,
+  createCampaign,
+  OBJECTIVE_CONFIG,
+  searchTargeting,
+  type AdSetSpec,
+  type CampaignObjective,
+} from "../sources/metaApi/campaigns.js";
 import type { MetaApiClient } from "../sources/metaApi/client.js";
 import {
   copyObject,
@@ -56,6 +67,47 @@ export interface NewAdInput {
   cta: (typeof CTA_TYPES)[number];
   link_url: string;
   status: "ACTIVE" | "PAUSED";
+}
+
+export interface NewCampaignInput {
+  name: string;
+  objective: CampaignObjective;
+  /** "campaign" = Advantage campaign budget (CBO); "adset" = budget on the ad set (ABO). */
+  budget_level: "campaign" | "adset";
+  daily_budget: number;
+  status: "ACTIVE" | "PAUSED";
+  special_ad_categories?: string[];
+  adset: AdSetSpec;
+}
+
+export interface NewAdSetInput {
+  campaign_id: string;
+  /** Required unless the campaign has its own (CBO) budget. */
+  daily_budget?: number;
+  status: "ACTIVE" | "PAUSED";
+  adset: AdSetSpec;
+}
+
+/** Human-readable targeting for previews. */
+function describeTargeting(spec: AdSetSpec) {
+  return {
+    locations: spec.locations.map(
+      (l) => `${l.name ?? l.key} (${l.type}${l.radius_km ? `, +${l.radius_km} km` : ""})`,
+    ),
+    age: `${spec.age_min ?? 18}–${spec.age_max ?? 65}${(spec.age_max ?? 65) === 65 ? "+" : ""}`,
+    gender: spec.genders ?? "all",
+    interests: spec.interests?.map((i) => i.name) ?? [],
+    advantage_audience: spec.advantage_audience
+      ? "ON — Meta may show ads beyond these settings when it expects better results"
+      : "off — only the audience above",
+    placements: spec.platforms?.length
+      ? spec.platforms.join(", ")
+      : "Advantage+ placements (all, Meta's recommendation)",
+    schedule:
+      spec.start_time || spec.end_time
+        ? `${spec.start_time ?? "now"} → ${spec.end_time ?? "ongoing"}`
+        : "starts now, ongoing",
+  };
 }
 
 const newId = () => randomBytes(4).toString("hex").toUpperCase();
@@ -333,6 +385,223 @@ export class AdManagerService {
     );
   }
 
+  /** Validates an ad set spec without calling Meta. */
+  private validateAdSetSpec(spec: AdSetSpec): void {
+    if (!spec.locations.length)
+      throw new AppError("Choose at least one location (country, region or city).");
+    const min = spec.age_min ?? 18;
+    const max = spec.age_max ?? 65;
+    if (min < 13 || max > 65 || min > max)
+      throw new AppError("Ages must be between 13 and 65, with age_min ≤ age_max.");
+    for (const l of spec.locations) {
+      if (l.type === "country" && !/^[A-Za-z]{2}$/.test(l.key))
+        throw new AppError(`"${l.key}" is not a 2-letter country code.`);
+      if (l.type !== "country" && !/^\d+$/.test(l.key)) {
+        throw new AppError(
+          `Location "${l.name ?? l.key}" needs its numeric key.`,
+          "Look it up with search_targeting (kind location).",
+        );
+      }
+      if (
+        l.radius_km !== undefined &&
+        (l.type !== "city" || l.radius_km < 17 || l.radius_km > 80)
+      ) {
+        throw new AppError("radius_km is only for cities and must be 17–80 km.");
+      }
+    }
+    for (const t of [spec.start_time, spec.end_time]) {
+      if (t && Number.isNaN(Date.parse(t)))
+        throw new AppError(
+          `"${t}" is not a valid date/time (use ISO 8601, e.g. 2026-11-01T09:00:00+0600).`,
+        );
+    }
+    if (
+      spec.start_time &&
+      spec.end_time &&
+      Date.parse(spec.end_time) <= Date.parse(spec.start_time)
+    ) {
+      throw new AppError("end_time must be after start_time.");
+    }
+    if (spec.end_time && Date.parse(spec.end_time) <= this.ctx.now().getTime())
+      throw new AppError("end_time is in the past.");
+  }
+
+  private checkCap(amount: number, currency: string): void {
+    const cap = this.ctx.env.META_MAX_DAILY_BUDGET;
+    if (cap !== undefined && amount > cap) {
+      throw new AppError(
+        `${money(amount, currency)} per day is above this project's safety cap of ${money(cap, currency)}.`,
+        "Raise META_MAX_DAILY_BUDGET (configure_project_meta max_daily_budget) if the user really wants this.",
+      );
+    }
+  }
+
+  private pixelFor(objective: CampaignObjective): string | undefined {
+    const cfg = OBJECTIVE_CONFIG[objective];
+    if (!cfg.event) return undefined;
+    const pixel = this.ctx.env.META_PIXEL_ID;
+    if (!pixel) {
+      throw new AppError(
+        `${cfg.label} campaigns need this client's Meta Pixel.`,
+        "Set it with configure_project_meta (pixel_id), or choose the Traffic objective.",
+      );
+    }
+    return pixel;
+  }
+
+  private commonWarnings(status: string, spec: AdSetSpec): string[] {
+    const w = [
+      "The new ad set has no ads yet — nothing delivers or spends until an ad is added (propose_new_ad with the new ad set id).",
+    ];
+    if (status === "ACTIVE")
+      w.push("Status ACTIVE: as soon as an ad is added and approved, it starts spending.");
+    if (spec.advantage_audience)
+      w.push("Advantage+ audience is ON: Meta may reach people outside the age/interest settings.");
+    if ((spec.interests?.length ?? 0) > 0 && spec.advantage_audience)
+      w.push("With Advantage+ audience, interests act as suggestions only.");
+    return w;
+  }
+
+  /** Read-only lookup of location keys and interest ids for targeting. */
+  async searchTargeting(kind: "location" | "interest", query: string, countryCode?: string) {
+    const results = await searchTargeting(this.client(), kind, query, countryCode);
+    return {
+      summary: `${results.length} ${kind} match(es) for "${query}".`,
+      results: results.map((r) =>
+        kind === "interest"
+          ? {
+              id: r.id,
+              name: r.name,
+              audience_size: r.audience_size_lower_bound
+                ? `${r.audience_size_lower_bound}–${r.audience_size_upper_bound}`
+                : null,
+              path: r.path,
+            }
+          : {
+              type: r.type,
+              key: r.key,
+              name: r.name,
+              region: r.region ?? null,
+              country_code: r.country_code ?? null,
+            },
+      ),
+      how_to_use:
+        kind === "interest"
+          ? "Pass {id, name} in adset.interests."
+          : 'Pass {type, key, name} in adset.locations (countries: {type:"country", key:"BD"}).',
+    };
+  }
+
+  async proposeNewCampaign(input: NewCampaignInput) {
+    this.requireWrite();
+    this.validateAdSetSpec(input.adset);
+    const pixel = this.pixelFor(input.objective);
+    const { currency, offset } = await this.currency();
+    this.checkCap(input.daily_budget, currency);
+    const minor = Math.round(input.daily_budget * offset);
+    const cats = input.special_ad_categories ?? [];
+    const warnings = this.commonWarnings(input.status, input.adset);
+    if (cats.length)
+      warnings.push(
+        `Special ad category ${cats.join(", ")}: Meta restricts age, gender and detailed targeting.`,
+      );
+    const cfg = OBJECTIVE_CONFIG[input.objective];
+    const preview = {
+      what: `Create campaign "${input.name}" with ad set "${input.adset.name}"`,
+      ad_account: `act_${this.accountId()}`,
+      initial_status: input.status,
+      campaign: {
+        name: input.name,
+        objective: cfg.label,
+        budget: `${money(input.daily_budget, currency)} per day on the ${input.budget_level === "campaign" ? "campaign (Advantage campaign budget)" : "ad set"}`,
+        monthly_estimate: `up to ${money(input.daily_budget * 30, currency)} per 30 days`,
+        special_ad_categories: cats.length ? cats : "none",
+      },
+      ad_set: {
+        name: input.adset.name,
+        optimization:
+          input.objective === "OUTCOME_TRAFFIC" && input.adset.optimization_goal
+            ? input.adset.optimization_goal
+            : cfg.optimization_goal,
+        ...(pixel ? { pixel_id: pixel, conversion_event: cfg.event } : {}),
+        targeting: describeTargeting(input.adset),
+      },
+      warnings,
+    };
+    return this.store(
+      "new_campaign",
+      `New ${input.status} campaign "${input.name}" (${cfg.label}, ${money(input.daily_budget, currency)}/day) with ad set "${input.adset.name}"`,
+      { ...input, special_ad_categories: cats, daily_budget_minor: minor, pixel_id: pixel ?? null },
+      preview,
+    );
+  }
+
+  async proposeNewAdSet(input: NewAdSetInput) {
+    this.requireWrite();
+    this.validateAdSetSpec(input.adset);
+    const campaign = await this.fetchOwned("campaign", input.campaign_id);
+    const objective = campaign.objective as CampaignObjective | undefined;
+    if (!objective || !(objective in OBJECTIVE_CONFIG)) {
+      throw new AppError(
+        `New ad sets can't be created here for campaign objective ${campaign.objective ?? "unknown"}.`,
+        "Supported: Sales, Leads, Traffic, Awareness. For other objectives (e.g. messages), duplicate an existing ad set with propose_duplicate.",
+      );
+    }
+    if (campaign.lifetime_budget)
+      throw new AppError("This campaign uses a lifetime budget; add ad sets to it in Ads Manager.");
+    const cbo = Boolean(campaign.daily_budget);
+    if (cbo && input.daily_budget !== undefined) {
+      throw new AppError(
+        "This campaign uses a campaign budget (Advantage campaign budget), so the ad set can't have its own budget. Leave daily_budget out.",
+      );
+    }
+    if (!cbo && input.daily_budget === undefined)
+      throw new AppError(
+        "This campaign has no campaign budget, so the ad set needs a daily_budget.",
+      );
+    const pixel = this.pixelFor(objective);
+    const { currency, offset } = await this.currency();
+    if (input.daily_budget !== undefined) this.checkCap(input.daily_budget, currency);
+    const cfg = OBJECTIVE_CONFIG[objective];
+    const preview = {
+      what: `Create ad set "${input.adset.name}" in campaign "${campaign.name}"`,
+      ad_account: `act_${this.accountId()}`,
+      initial_status: input.status,
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        objective: cfg.label,
+        status: campaign.effective_status,
+      },
+      ad_set: {
+        name: input.adset.name,
+        budget:
+          input.daily_budget !== undefined
+            ? `${money(input.daily_budget, currency)} per day (up to ${money(input.daily_budget * 30, currency)} per 30 days)`
+            : `shares the campaign budget (${money(Number(campaign.daily_budget) / offset, currency)} per day)`,
+        optimization:
+          objective === "OUTCOME_TRAFFIC" && input.adset.optimization_goal
+            ? input.adset.optimization_goal
+            : cfg.optimization_goal,
+        ...(pixel ? { pixel_id: pixel, conversion_event: cfg.event } : {}),
+        targeting: describeTargeting(input.adset),
+      },
+      warnings: this.commonWarnings(input.status, input.adset),
+    };
+    return this.store(
+      "new_adset",
+      `New ${input.status} ad set "${input.adset.name}" in campaign "${campaign.name}"`,
+      {
+        ...input,
+        objective,
+        daily_budget_minor:
+          input.daily_budget !== undefined ? Math.round(input.daily_budget * offset) : null,
+        pixel_id: pixel ?? null,
+      },
+      preview,
+    );
+  }
+
   async proposeStatusChange(input: {
     level: MetaLevel;
     object_id: string;
@@ -552,6 +821,63 @@ export class AdManagerService {
           });
           break;
         }
+        case "new_campaign": {
+          const input = p as unknown as NewCampaignInput & {
+            daily_budget_minor: number;
+            pixel_id: string | null;
+          };
+          const cbo = input.budget_level === "campaign";
+          if (!result.campaign_id) {
+            result.campaign_id = await createCampaign(
+              client,
+              accountId,
+              campaignPayload({
+                name: input.name,
+                objective: input.objective,
+                status: input.status,
+                special_ad_categories: input.special_ad_categories ?? [],
+                daily_budget_minor: cbo ? input.daily_budget_minor : undefined,
+              }),
+            );
+            save();
+          }
+          result.adset_id = await createAdSet(
+            client,
+            accountId,
+            adSetPayload({
+              spec: input.adset,
+              campaign_id: String(result.campaign_id),
+              objective: input.objective,
+              status: input.status,
+              daily_budget_minor: cbo ? undefined : input.daily_budget_minor,
+              pixel_id: input.pixel_id ?? undefined,
+            }),
+          );
+          result.targeting = buildTargeting(input.adset);
+          break;
+        }
+        case "new_adset": {
+          const input = p as unknown as NewAdSetInput & {
+            objective: CampaignObjective;
+            daily_budget_minor: number | null;
+            pixel_id: string | null;
+          };
+          await this.fetchOwned("campaign", input.campaign_id);
+          result.adset_id = await createAdSet(
+            client,
+            accountId,
+            adSetPayload({
+              spec: input.adset,
+              campaign_id: input.campaign_id,
+              objective: input.objective,
+              status: input.status,
+              daily_budget_minor: input.daily_budget_minor ?? undefined,
+              pixel_id: input.pixel_id ?? undefined,
+            }),
+          );
+          result.campaign_id = input.campaign_id;
+          break;
+        }
         case "status_change": {
           const level = p.level as MetaLevel;
           await this.fetchOwned(level, String(p.object_id));
@@ -596,11 +922,22 @@ export class AdManagerService {
         confirmed_via: via,
         result,
         note: "Meta still reviews new or edited ads before they deliver.",
+        ...(result.adset_id && (action.type === "new_campaign" || action.type === "new_adset")
+          ? {
+              next_step: `Add ads to the new ad set with propose_new_ad (adset_id "${result.adset_id}").`,
+            }
+          : {}),
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       repo.update(action.id, { status: "failed", result, error: message });
       const partial = Object.keys(result).length > 0;
+      if (action.type === "new_campaign" && result.campaign_id && !result.adset_id) {
+        throw new AppError(
+          `Action ${action.id}: the campaign was created (id ${result.campaign_id}) but its ad set failed: ${message}`,
+          `Fix the cause, then add the ad set with propose_new_adset (campaign_id "${result.campaign_id}") — or pause/delete the empty campaign in Ads Manager.`,
+        );
+      }
       throw new AppError(
         `Action ${action.id} failed: ${message}`,
         partial

@@ -4,6 +4,7 @@ import { competitorReport } from "./competitorReport.js";
 import { contentPlan } from "./contentPlan.js";
 import { dailyBriefing } from "./dailyBriefing.js";
 import { launchAds } from "./launchAds.js";
+import { planCampaign } from "./planCampaign.js";
 import { salesGrowthIdeas } from "./salesGrowthIdeas.js";
 import { scriptIdeas } from "./scriptIdeas.js";
 import { setupWizard } from "./setupWizard.js";
@@ -15,6 +16,7 @@ export const allPrompts: PromptDef[] = [
   contentPlan,
   scriptIdeas,
   launchAds,
+  planCampaign,
   salesGrowthIdeas,
   competitorReport,
   weeklyReview,

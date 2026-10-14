@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { CTA_TYPES } from "../../services/adManagerService.js";
+import {
+  CAMPAIGN_OBJECTIVES,
+  PLATFORMS,
+  SPECIAL_AD_CATEGORIES,
+} from "../../sources/metaApi/campaigns.js";
 import type { AnyToolDef } from "../tooling.js";
 import { defineTool } from "../tooling.js";
 
@@ -44,6 +49,106 @@ export const proposeNewAd = defineTool({
   readOnly: false,
   openWorld: true,
   handler: (a, ctx) => ctx.services.adManager.proposeNewAd(a),
+});
+
+const adSetSpec = z
+  .object({
+    name: z.string().min(1).max(200),
+    locations: z
+      .array(
+        z.object({
+          type: z.enum(["country", "region", "city"]),
+          key: z
+            .string()
+            .min(1)
+            .describe('Country code (e.g. "BD") or the key from search_targeting.'),
+          name: z.string().optional(),
+          radius_km: z.number().min(17).max(80).optional().describe("Cities only."),
+        }),
+      )
+      .min(1)
+      .max(50),
+    age_min: z.number().int().min(13).max(65).optional().describe("Default 18."),
+    age_max: z.number().int().min(13).max(65).optional().describe("Default 65 (= 65+)."),
+    genders: z.enum(["all", "male", "female"]).optional(),
+    interests: z
+      .array(z.object({ id: z.string().regex(/^\d+$/), name: z.string() }))
+      .max(50)
+      .optional()
+      .describe("From search_targeting (kind interest)."),
+    advantage_audience: z
+      .boolean()
+      .optional()
+      .describe("Let Meta go beyond this audience (default false)."),
+    platforms: z
+      .array(z.enum(PLATFORMS))
+      .optional()
+      .describe("Omit for Advantage+ placements (recommended)."),
+    optimization_goal: z
+      .enum(["LANDING_PAGE_VIEWS", "LINK_CLICKS"])
+      .optional()
+      .describe("Traffic campaigns only."),
+    start_time: z
+      .string()
+      .optional()
+      .describe("ISO 8601, e.g. 2026-11-01T09:00:00+0600. Default: now."),
+    end_time: z.string().optional(),
+  })
+  .describe("Ad set: audience, placements and schedule.");
+
+export const searchTargetingTool = defineTool({
+  name: "search_targeting",
+  title: "Search targeting options",
+  description:
+    'Finds location keys (countries, regions, cities) or interest ids to use in new ad sets, e.g. Dhaka, Chattogram, "skincare". Read-only.',
+  inputSchema: {
+    kind: z.enum(["location", "interest"]),
+    query: z.string().min(2).max(100),
+    country_code: z.string().length(2).optional().describe("Locations only: limit to a country."),
+  },
+  openWorld: true,
+  handler: (a, ctx) => ctx.services.adManager.searchTargeting(a.kind, a.query, a.country_code),
+});
+
+export const proposeNewCampaign = defineTool({
+  name: "propose_new_campaign",
+  title: "Propose a new campaign + ad set",
+  description: `Prepares a new campaign with its first ad set: objective (Sales and Leads need the project's pixel; Traffic; Awareness), daily budget on the campaign or the ad set, audience, placements and schedule. Ads are added afterwards with propose_new_ad. Ask the user for the budget, audience and ACTIVE/PAUSED — never assume. Message/WhatsApp campaigns are not supported here (duplicate an existing one instead). ${CONFIRM_RULE}`,
+  inputSchema: {
+    name: z.string().min(1).max(200),
+    objective: z.enum(CAMPAIGN_OBJECTIVES),
+    budget_level: z
+      .enum(["campaign", "adset"])
+      .describe("campaign = Advantage campaign budget; adset = budget on the ad set."),
+    daily_budget: z
+      .number()
+      .positive()
+      .describe("Account currency, normal units (e.g. 1500 for ৳1,500)."),
+    status: z.enum(["ACTIVE", "PAUSED"]),
+    special_ad_categories: z
+      .array(z.enum(SPECIAL_AD_CATEGORIES))
+      .optional()
+      .describe("Only for housing, jobs, credit/finance or political ads."),
+    adset: adSetSpec,
+  },
+  readOnly: false,
+  openWorld: true,
+  handler: (a, ctx) => ctx.services.adManager.proposeNewCampaign(a),
+});
+
+export const proposeNewAdSet = defineTool({
+  name: "propose_new_adset",
+  title: "Propose a new ad set",
+  description: `Prepares a new ad set in an existing campaign of this project (Sales, Leads, Traffic or Awareness objective). Give daily_budget only if the campaign has no campaign budget. ${CONFIRM_RULE}`,
+  inputSchema: {
+    campaign_id: metaId,
+    daily_budget: z.number().positive().optional(),
+    status: z.enum(["ACTIVE", "PAUSED"]),
+    adset: adSetSpec,
+  },
+  readOnly: false,
+  openWorld: true,
+  handler: (a, ctx) => ctx.services.adManager.proposeNewAdSet(a),
 });
 
 export const proposeStatusChange = defineTool({
@@ -134,6 +239,9 @@ export const listAdActions = defineTool({
 export const adManagerTools: AnyToolDef[] = [
   getMetaStructure,
   listCreativeFiles,
+  searchTargetingTool,
+  proposeNewCampaign,
+  proposeNewAdSet,
   proposeNewAd,
   proposeStatusChange,
   proposeBudgetChange,

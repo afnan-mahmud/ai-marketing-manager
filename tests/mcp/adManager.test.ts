@@ -19,7 +19,14 @@ interface Post {
 }
 
 /** In-memory Graph API: account 111 (BDT) owns campaign 401, ad set 501, ad 601; ad set 999 belongs to account 222. */
-function fakeGraph(opts: { videoProcessingPolls?: number; failCreative?: boolean } = {}) {
+function fakeGraph(
+  opts: {
+    videoProcessingPolls?: number;
+    failCreative?: boolean;
+    requireBudgetSharing?: boolean;
+    failAdSet?: boolean;
+  } = {},
+) {
   const posts: Post[] = [];
   const objects: Record<string, Record<string, unknown>> = {
     "401": {
@@ -50,6 +57,29 @@ function fakeGraph(opts: { videoProcessingPolls?: number; failCreative?: boolean
       adset_id: "501",
       campaign_id: "401",
     },
+    "402": {
+      id: "402",
+      account_id: "111",
+      name: "Traffic | ABO",
+      status: "ACTIVE",
+      effective_status: "ACTIVE",
+      objective: "OUTCOME_TRAFFIC",
+    },
+    "403": {
+      id: "403",
+      account_id: "111",
+      name: "Messages",
+      status: "ACTIVE",
+      effective_status: "ACTIVE",
+      objective: "OUTCOME_ENGAGEMENT",
+    },
+    "998": {
+      id: "998",
+      account_id: "222",
+      name: "Other client's campaign",
+      status: "ACTIVE",
+      objective: "OUTCOME_SALES",
+    },
     "999": {
       id: "999",
       account_id: "222",
@@ -74,6 +104,29 @@ function fakeGraph(opts: { videoProcessingPolls?: number; failCreative?: boolean
         }
       } else if (init.body instanceof URLSearchParams) for (const [k, v] of init.body) body[k] = v;
       posts.push({ path, body, files });
+      if (path === "act_111/campaigns") {
+        if (
+          opts.requireBudgetSharing &&
+          !body.daily_budget &&
+          !body.is_adset_budget_sharing_enabled
+        ) {
+          return json(
+            {
+              error: {
+                message: "Invalid parameter: is_adset_budget_sharing_enabled is required",
+                code: 100,
+              },
+            },
+            400,
+          );
+        }
+        return json({ id: "CMP1" });
+      }
+      if (path === "act_111/adsets") {
+        return opts.failAdSet
+          ? json({ error: { message: "Budget too low", code: 100 } }, 400)
+          : json({ id: "ADSET1" });
+      }
       if (path === "act_111/adimages")
         return json({ images: { "photo.jpg": { hash: "HASH123", url: "https://img" } } });
       if (path === "act_111/advideos") return json({ id: "VID9" });
@@ -91,6 +144,31 @@ function fakeGraph(opts: { videoProcessingPolls?: number; failCreative?: boolean
         return json({ success: true });
       }
       return json({ error: { message: "unknown", code: 100 } }, 400);
+    }
+    if (path === "search") {
+      return url.searchParams.get("type") === "adinterest"
+        ? json({
+            data: [
+              {
+                id: "6003",
+                name: "Skin care",
+                audience_size_lower_bound: 1000000,
+                audience_size_upper_bound: 1200000,
+                path: ["Interests", "Beauty"],
+              },
+            ],
+          })
+        : json({
+            data: [
+              {
+                key: "1185962",
+                name: "Dhaka",
+                type: "city",
+                country_code: "BD",
+                region: "Dhaka Division",
+              },
+            ],
+          });
     }
     if (path === "act_111") return json({ id: "act_111", account_id: "111", currency: "BDT" });
     if (path === "act_111/campaigns") return json({ data: [objects["401"]] });
@@ -467,5 +545,300 @@ describe("confirmation dialog over MCP (elicitation)", () => {
     expect(tools.find((x) => x.name === "propose_new_ad")!.annotations?.destructiveHint).toBe(
       false,
     );
+  });
+});
+
+const ADSET_SPEC = {
+  name: "Women 20-35 | Dhaka",
+  locations: [{ type: "city", key: "1185962", name: "Dhaka", radius_km: 25 }],
+  age_min: 20,
+  age_max: 35,
+  genders: "female",
+  interests: [{ id: "6003", name: "Skin care" }],
+};
+
+describe("creating campaigns and ad sets (confirm-first)", () => {
+  it("builds Meta payloads from a readable spec", async () => {
+    const { buildTargeting, adSetPayload, campaignPayload } =
+      await import("../../src/sources/metaApi/campaigns.js");
+    expect(buildTargeting({ name: "x", locations: [{ type: "country", key: "bd" }] })).toEqual({
+      geo_locations: { location_types: ["home", "recent"], countries: ["BD"] },
+      age_min: 18,
+      age_max: 65,
+      targeting_automation: { advantage_audience: 0 },
+    });
+    const t = buildTargeting({
+      ...ADSET_SPEC,
+      locations: ADSET_SPEC.locations as never,
+      genders: "female",
+      platforms: ["facebook", "instagram"],
+      advantage_audience: true,
+    });
+    expect(t).toMatchObject({
+      geo_locations: { cities: [{ key: "1185962", radius: 25, distance_unit: "kilometer" }] },
+      genders: [2],
+      flexible_spec: [{ interests: [{ id: "6003", name: "Skin care" }] }],
+      publisher_platforms: ["facebook", "instagram"],
+      targeting_automation: { advantage_audience: 1 },
+    });
+    expect(
+      campaignPayload({
+        name: "C",
+        objective: "OUTCOME_SALES",
+        status: "PAUSED",
+        special_ad_categories: [],
+        daily_budget_minor: 50000,
+      }),
+    ).toEqual({
+      name: "C",
+      objective: "OUTCOME_SALES",
+      status: "PAUSED",
+      buying_type: "AUCTION",
+      special_ad_categories: "[]",
+      daily_budget: "50000",
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+    });
+    const base = {
+      spec: { name: "A", locations: [{ type: "country" as const, key: "BD" }] },
+      campaign_id: "1",
+      status: "PAUSED" as const,
+    };
+    expect(() => adSetPayload({ ...base, objective: "OUTCOME_SALES" })).toThrow(/Pixel/);
+    const sales = adSetPayload({
+      ...base,
+      objective: "OUTCOME_SALES",
+      pixel_id: "55",
+      daily_budget_minor: 100000,
+    });
+    expect(sales).toMatchObject({
+      optimization_goal: "OFFSITE_CONVERSIONS",
+      destination_type: "WEBSITE",
+      billing_event: "IMPRESSIONS",
+      daily_budget: "100000",
+    });
+    expect(JSON.parse(sales.promoted_object!)).toEqual({
+      pixel_id: "55",
+      custom_event_type: "PURCHASE",
+    });
+    const traffic = adSetPayload({
+      ...base,
+      spec: { ...base.spec, optimization_goal: "LINK_CLICKS" },
+      objective: "OUTCOME_TRAFFIC",
+    });
+    expect(traffic.optimization_goal).toBe("LINK_CLICKS");
+    expect(traffic.daily_budget).toBeUndefined();
+    expect(adSetPayload({ ...base, objective: "OUTCOME_AWARENESS" }).optimization_goal).toBe(
+      "REACH",
+    );
+  });
+
+  it("looks up locations and interests", async () => {
+    const { ctx } = setup({ write: false });
+    const loc = await call(ctx, "search_targeting", {
+      kind: "location",
+      query: "Dhaka",
+      country_code: "BD",
+    });
+    expect(loc.data.results[0]).toEqual({
+      type: "city",
+      key: "1185962",
+      name: "Dhaka",
+      region: "Dhaka Division",
+      country_code: "BD",
+    });
+    const int = await call(ctx, "search_targeting", { kind: "interest", query: "skin" });
+    expect(int.data.results[0]).toMatchObject({
+      id: "6003",
+      name: "Skin care",
+      audience_size: "1000000–1200000",
+    });
+  });
+
+  it("needs the project's pixel for Sales campaigns", async () => {
+    const { ctx, posts } = setup();
+    const r = await call(ctx, "propose_new_campaign", {
+      name: "Serum Nov",
+      objective: "OUTCOME_SALES",
+      budget_level: "adset",
+      daily_budget: 1500,
+      status: "PAUSED",
+      adset: ADSET_SPEC,
+    });
+    expect(r.data.error).toContain("Pixel");
+    expect(r.data.hint).toContain("pixel_id");
+    expect(posts).toEqual([]);
+  });
+
+  it("creates campaign + ad set (ad set budget) only after confirmation", async () => {
+    const t = setup({ graph: { requireBudgetSharing: true } });
+    t.ws.configureMeta("glow-bd", { META_PIXEL_ID: "8888" });
+    const ctx = t.ws.context("glow-bd");
+    const p = await call(ctx, "propose_new_campaign", {
+      name: "Serum Nov",
+      objective: "OUTCOME_SALES",
+      budget_level: "adset",
+      daily_budget: 1500,
+      status: "PAUSED",
+      adset: ADSET_SPEC,
+    });
+    expect(p.isError).toBe(false);
+    expect(t.posts).toEqual([]);
+    expect(p.data.preview.campaign.budget).toBe("BDT 1,500 per day on the ad set");
+    expect(p.data.preview.ad_set).toMatchObject({
+      optimization: "OFFSITE_CONVERSIONS",
+      pixel_id: "8888",
+      conversion_event: "PURCHASE",
+    });
+    expect(p.data.preview.ad_set.targeting).toMatchObject({
+      locations: ["Dhaka (city, +25 km)"],
+      age: "20–35",
+      gender: "female",
+      interests: ["Skin care"],
+    });
+    expect(p.data.preview.warnings[0]).toContain("no ads yet");
+
+    const r = await call(ctx, "execute_ad_action", { action_id: p.data.action_id });
+    expect(r.data).toMatchObject({
+      status: "executed",
+      result: { campaign_id: "CMP1", adset_id: "ADSET1" },
+    });
+    expect(r.data.next_step).toContain('propose_new_ad (adset_id "ADSET1")');
+    const campaignPosts = t.posts.filter((x) => x.path === "act_111/campaigns");
+    expect(campaignPosts).toHaveLength(2); // retried once with the field newer API versions require
+    expect(campaignPosts[0]!.body.daily_budget).toBeUndefined();
+    expect(campaignPosts[1]!.body).toMatchObject({
+      objective: "OUTCOME_SALES",
+      status: "PAUSED",
+      special_ad_categories: "[]",
+      is_adset_budget_sharing_enabled: "false",
+    });
+    const adset = t.posts.find((x) => x.path === "act_111/adsets")!.body;
+    expect(adset).toMatchObject({
+      campaign_id: "CMP1",
+      daily_budget: "150000",
+      status: "PAUSED",
+      optimization_goal: "OFFSITE_CONVERSIONS",
+    });
+    expect(JSON.parse(adset.targeting!).geo_locations.cities).toEqual([
+      { key: "1185962", radius: 25, distance_unit: "kilometer" },
+    ]);
+  });
+
+  it("puts the budget on the campaign for Advantage campaign budget", async () => {
+    const { ctx, posts } = setup();
+    const p = await call(ctx, "propose_new_campaign", {
+      name: "Traffic test",
+      objective: "OUTCOME_TRAFFIC",
+      budget_level: "campaign",
+      daily_budget: 800,
+      status: "ACTIVE",
+      adset: { name: "Broad BD", locations: [{ type: "country", key: "BD" }] },
+    });
+    expect(p.data.preview.warnings.join(" ")).toContain("starts spending");
+    await call(ctx, "execute_ad_action", { action_id: p.data.action_id });
+    expect(posts[0]!.body).toMatchObject({
+      daily_budget: "80000",
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+      status: "ACTIVE",
+    });
+    expect(posts[1]!.body.daily_budget).toBeUndefined();
+    expect(posts[1]!.body.promoted_object).toBeUndefined();
+  });
+
+  it("reports the created campaign when its ad set fails", async () => {
+    const { ctx } = setup({ graph: { failAdSet: true } });
+    const p = await call(ctx, "propose_new_campaign", {
+      name: "T",
+      objective: "OUTCOME_TRAFFIC",
+      budget_level: "adset",
+      daily_budget: 100,
+      status: "PAUSED",
+      adset: { name: "A", locations: [{ type: "country", key: "BD" }] },
+    });
+    const r = await call(ctx, "execute_ad_action", { action_id: p.data.action_id });
+    expect(r.isError).toBe(true);
+    expect(r.data.error).toContain("campaign was created (id CMP1)");
+    expect(r.data.hint).toContain('propose_new_adset (campaign_id "CMP1")');
+  });
+
+  it("validates budgets, caps and targeting before proposing", async () => {
+    const { ctx } = setup({ cap: 1000 });
+    const base = {
+      name: "T",
+      objective: "OUTCOME_TRAFFIC",
+      budget_level: "adset",
+      status: "PAUSED",
+    };
+    expect(
+      (await call(ctx, "propose_new_campaign", { ...base, daily_budget: 5000, adset: ADSET_SPEC }))
+        .data.error,
+    ).toContain("safety cap");
+    const badCity = { ...ADSET_SPEC, locations: [{ type: "city", key: "Dhaka" }] };
+    expect(
+      (await call(ctx, "propose_new_campaign", { ...base, daily_budget: 500, adset: badCity })).data
+        .hint,
+    ).toContain("search_targeting");
+    const badAge = { ...ADSET_SPEC, age_min: 40, age_max: 30 };
+    expect(
+      (await call(ctx, "propose_new_campaign", { ...base, daily_budget: 500, adset: badAge })).data
+        .error,
+    ).toContain("age_min");
+  });
+
+  it("adds ad sets to existing campaigns, respecting campaign vs ad set budgets", async () => {
+    const t = setup();
+    t.ws.configureMeta("glow-bd", { META_PIXEL_ID: "8888" });
+    const ctx = t.ws.context("glow-bd");
+    // 401 has a campaign budget (CBO)
+    const withBudget = await call(ctx, "propose_new_adset", {
+      campaign_id: "401",
+      daily_budget: 500,
+      status: "PAUSED",
+      adset: ADSET_SPEC,
+    });
+    expect(withBudget.data.error).toContain("campaign budget");
+    const cbo = await call(ctx, "propose_new_adset", {
+      campaign_id: "401",
+      status: "PAUSED",
+      adset: ADSET_SPEC,
+    });
+    expect(cbo.data.preview.ad_set.budget).toContain(
+      "shares the campaign budget (BDT 3,000 per day)",
+    );
+    await call(ctx, "execute_ad_action", { action_id: cbo.data.action_id });
+    const body = t.posts.at(-1)!.body;
+    expect(body).toMatchObject({ campaign_id: "401", optimization_goal: "OFFSITE_CONVERSIONS" });
+    expect(body.daily_budget).toBeUndefined();
+    // 402 has no campaign budget (ABO)
+    expect(
+      (
+        await call(ctx, "propose_new_adset", {
+          campaign_id: "402",
+          status: "PAUSED",
+          adset: ADSET_SPEC,
+        })
+      ).data.error,
+    ).toContain("needs a daily_budget");
+    // unsupported objective and another client's campaign
+    expect(
+      (
+        await call(ctx, "propose_new_adset", {
+          campaign_id: "403",
+          daily_budget: 500,
+          status: "PAUSED",
+          adset: ADSET_SPEC,
+        })
+      ).data.hint,
+    ).toContain("propose_duplicate");
+    expect(
+      (
+        await call(ctx, "propose_new_adset", {
+          campaign_id: "998",
+          daily_budget: 500,
+          status: "PAUSED",
+          adset: ADSET_SPEC,
+        })
+      ).data.error,
+    ).toContain("does not belong");
   });
 });

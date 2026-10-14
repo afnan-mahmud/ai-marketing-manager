@@ -211,5 +211,30 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   ~4 minutes, then leaves the action in `processing` — calling `execute_ad_action` again resumes without asking again.
   The preferred Meta thumbnail is used for the video creative.
 - New ads use `object_story_spec` with `link_data` (image) or `video_data` (video) and `instagram_user_id` when set.
-- **Not built:** creating campaigns/ad sets from scratch (targeting, optimisation, bidding, pixels vary too much to do
-  safely here — duplicate an existing ad set instead), deleting, editing creatives of live ads, automated rules.
+- **Not built:** deleting, editing creatives of live ads, automated rules (campaign creation was added later, below).
+
+## Creating campaigns and ad sets
+
+- **Supported objectives are limited to ones with an unambiguous setup:** Sales (`OFFSITE_CONVERSIONS`, pixel +
+  `PURCHASE`), Leads (website, pixel + `LEAD`), Traffic (`LANDING_PAGE_VIEWS` by default, or `LINK_CLICKS`) and
+  Awareness (`REACH`), all `billing_event=IMPRESSIONS`, `bid_strategy=LOWEST_COST_WITHOUT_CAP`. Messenger/WhatsApp,
+  app, catalog and on-Facebook lead-form campaigns need destination/creative setups that differ a lot; for those the
+  tools tell Claude to duplicate an existing ad set instead.
+- **Campaign + first ad set are one proposal** (`propose_new_campaign`), because a campaign without an ad set is
+  useless and the budget choice (campaign vs ad set) spans both. Extra ad sets use `propose_new_adset`. Ads are always
+  separate proposals, so nothing can spend before the user has confirmed an ad too.
+- **Pixel is a project-only setting** (`META_PIXEL_ID`) like the ad account, so one client's pixel can't be used for
+  another. `PROJECT_ENV_KEYS` is now derived from `PROJECT_ONLY_KEYS` so a new per-project key can't be forgotten.
+- **`is_adset_budget_sharing_enabled`:** newer Graph API versions require it on campaigns without a campaign budget;
+  older versions reject unknown fields. The campaign is created without it and, only if Meta's error names that field,
+  retried once with `false` (the rejected request created nothing, so the retry is safe).
+- **Targeting is explicit:** `targeting_automation.advantage_audience` is always sent (default 0 = exactly the given
+  audience; the user can turn it on), `location_types` = home + recent, ages default 18–65, placements default to
+  Advantage+ (no `publisher_platforms`). Region/city keys and interest ids come from `search_targeting`
+  (`/search?type=adgeolocation|adinterest`) — Claude must not invent them; non-numeric keys are rejected.
+- **Daily budgets only** (no lifetime budgets: they require end dates and pacing rules); the per-project cap applies to
+  new campaigns and ad sets too. Campaign-budget campaigns reject an ad set budget and vice versa, before calling Meta.
+- If the ad set fails after the campaign was created, the result names the campaign id and how to continue
+  (`propose_new_adset` into it, or pause it).
+- Meta enforces minimum daily budgets per currency and objective; we don't duplicate those rules — Meta's error is
+  returned to the user.

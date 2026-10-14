@@ -29,6 +29,7 @@ function describeProject(ws: Workspace, slug: string) {
       manage_ads: ctx.env.META_WRITE_ENABLED,
       page_id: ctx.env.META_PAGE_ID ?? null,
       instagram_user_id: ctx.env.META_INSTAGRAM_USER_ID ?? null,
+      pixel_id: ctx.env.META_PIXEL_ID ?? null,
       max_daily_budget: ctx.env.META_MAX_DAILY_BUDGET ?? null,
     },
     data_last_date: ctx.repos.ads.lastDate(),
@@ -121,6 +122,11 @@ export const configureProjectMeta = defineWorkspaceTool({
       .optional(),
     page_id: z.string().regex(/^\d+$/, "numeric Facebook Page id").optional(),
     instagram_user_id: z.string().regex(/^\d+$/).optional(),
+    pixel_id: z
+      .string()
+      .regex(/^\d+$/, "numeric Meta Pixel id")
+      .optional()
+      .describe("Needed for Sales/Leads campaigns created here."),
     max_daily_budget: z
       .number()
       .positive()
@@ -138,6 +144,7 @@ export const configureProjectMeta = defineWorkspaceTool({
       META_API_VERSION: args.api_version,
       META_PAGE_ID: args.page_id,
       META_INSTAGRAM_USER_ID: args.instagram_user_id,
+      META_PIXEL_ID: args.pixel_id,
       META_MAX_DAILY_BUDGET: args.max_daily_budget?.toString(),
       META_WRITE_ENABLED: args.write_enabled === undefined ? undefined : String(args.write_enabled),
     });

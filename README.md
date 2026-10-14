@@ -52,8 +52,9 @@ Ask things like:
 - **Competitive positioning** — a transparent, _estimated_ Market Presence Score with data coverage and confidence.
 - **Market history** — Claude researches the market with its own web search; the server stores the findings so
   recurring trends become visible ("3rd day in a row").
-- **Managing ads, confirm-first** — turn images/videos from the client's `creatives/` folder into Meta ads, pause or
-  activate, change budgets, duplicate winners. Claude prepares each change as a preview; it runs in Ads Manager only
+- **Managing ads, confirm-first** — create new campaigns and ad sets (objective, budget, audience, placements),
+  turn images/videos from the client's `creatives/` folder into Meta ads, pause or activate, change budgets,
+  duplicate winners. Claude prepares each change as a preview; it runs in Ads Manager only
   after you confirm it. Off by default per client.
 - **Workflows** — ready-made prompts: daily briefing, ad optimization plan, content plan, script ideas, sales growth
   ideas, competitor report, weekly review, setup wizard. Reports are saved as Markdown in the client's `reports/`.
@@ -169,17 +170,28 @@ Claude can also **make changes in Meta Ads Manager** for a client — but never 
 Claude drafts the copy, picks an existing ad set, asks whether each ad should start **ACTIVE** or **PAUSED**, and
 creates each ad only after you confirm it. Meta still reviews every ad before it delivers.
 
+**New campaign from scratch:** ask _"Plan a new campaign for the Niacinamide launch, about ৳2,000/day"_ (the
+`plan_campaign` prompt). Claude proposes objective, budget, audience (looking up city/interest ids with
+`search_targeting`) and creatives from the client's data; once you approve the plan, it previews the campaign + first
+ad set (`propose_new_campaign`), then each extra ad set (`propose_new_adset`) and each ad — every one runs only after
+your yes. Supported objectives: **Sales** and **Leads** (website, using the project's pixel), **Traffic**,
+**Awareness**; budget on the campaign (Advantage campaign budget) or on the ad set; locations (country/region/city
+
+- radius), age, gender, interests, Advantage+ audience on/off, placements, start/end time. Messenger/WhatsApp campaigns
+  aren't created from scratch here — duplicate an existing one.
+
 **Turning it on for a client** (off by default):
 
 - Token with `ads_management`; the system user needs access to the ad account and the client's Facebook Page
   (and Instagram account, if used).
 - _"Enable ad management for Glow BD, Page id 1234567890, max daily budget ৳5,000"_ → `configure_project_meta`
-  (`write_enabled`, `page_id`, `max_daily_budget`), or edit the project's `project.env`.
+  (`write_enabled`, `page_id`, `max_daily_budget`; plus `pixel_id` for Sales/Leads campaigns), or edit the project's
+  `project.env`.
 
 **Safeguards:** off per client by default · nothing runs without a confirmed preview · one change per confirmation ·
 targets must belong to the project's own ad account · daily-budget cap · budget changes refused if the budget changed
-in Ads Manager after the preview · ±20% budget-jump warning (learning phase) · audit log · new campaigns/ad sets are
-created only by duplicating existing ones (no from-scratch targeting).
+in Ads Manager after the preview · ±20% budget-jump warning (learning phase) · audit log · a new campaign's empty ad
+set spends nothing until an ad is added and confirmed.
 
 ## Getting a client's ad data in
 
@@ -240,9 +252,10 @@ tool call.
 | `META_AD_LIBRARY_TOKEN`, `META_API_VERSION` | Optional overrides                                                                 |
 | `META_WRITE_ENABLED`                        | `true` lets Claude _prepare_ Ads Manager changes for this client (default `false`) |
 | `META_PAGE_ID`, `META_INSTAGRAM_USER_ID`    | Page / Instagram account new ads are published from                                |
+| `META_PIXEL_ID`                             | Pixel used by Sales/Leads campaigns created from here                              |
 | `META_MAX_DAILY_BUDGET`                     | Safety cap: highest daily budget a confirmed change may set                        |
 
-`META_AD_ACCOUNT_ID`, `META_WRITE_ENABLED`, `META_PAGE_ID`, `META_INSTAGRAM_USER_ID` and `META_MAX_DAILY_BUDGET` are only
+`META_AD_ACCOUNT_ID`, `META_WRITE_ENABLED`, `META_PAGE_ID`, `META_INSTAGRAM_USER_ID`, `META_PIXEL_ID` and `META_MAX_DAILY_BUDGET` are only
 read from the project's own `project.env`, never from the global `.env`.
 
 ### `projects/<client>/business.yaml` (per client)
@@ -298,6 +311,7 @@ Without it, analytics still work with default thresholds; competitor/market tool
 | `sales_growth_ideas`   | —                                                      | Ideas across offer, pricing/bundles, landing page, retargeting, creatives, trust/COD/delivery — ranked by impact vs effort |
 | `competitor_report`    | `name?`                                                | Deep dive: offers, pricing, messaging, ad patterns, changes, where you're ahead/behind                                     |
 | `weekly_review`        | —                                                      | Last 7 vs previous 7 days, what worked, scorecard of last week's plan, lessons, next week's plan                           |
+| `plan_campaign`        | `goal?`, `budget?`                                     | Plans a new campaign from the data, then creates campaign, ad sets and ads — each after your confirmation                  |
 | `launch_ads`           | `files?`                                               | Turns files in `creatives/` into ads: drafts copy, picks ad sets, creates each ad after your confirmation                  |
 | `setup_wizard`         | —                                                      | Guided setup: profile, competitors, data import or API keys                                                                |
 
@@ -374,6 +388,9 @@ Every tool below also accepts an optional **`project`** (client name or folder) 
 
 | Tool                    | Input                                                                                                   | What it does                                                                                  |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `search_targeting`      | `kind` (location/interest), `query`, `country_code?`                                                    | Location keys and interest ids for new ad sets (read-only)                                    |
+| `propose_new_campaign`  | `name`, `objective`, `budget_level`, `daily_budget`, `status`, `special_ad_categories?`, `adset`        | Preview of a new campaign with its first ad set                                               |
+| `propose_new_adset`     | `campaign_id`, `daily_budget?`, `status`, `adset`                                                       | Preview of a new ad set in an existing campaign                                               |
 | `get_meta_structure`    | `include_ads?`                                                                                          | Live campaigns / ad sets / ads with real ids, statuses and budgets (read-only)                |
 | `list_creative_files`   | —                                                                                                       | Images/videos in the project's `creatives/` folder and which ads use them                     |
 | `propose_new_ad`        | `file`, `adset_id`, `ad_name`, `primary_text`, `headline?`, `description?`, `cta`, `link_url`, `status` | Preview of a new ad from a creative file in an existing ad set                                |
@@ -417,9 +434,10 @@ Details and every other rule: [DECISIONS.md](DECISIONS.md) and the `marketing://
 
 ## Limitations
 
-- **Ads Manager changes are deliberately narrow**: new ads in existing ad sets, pause/activate, daily budgets and
-  duplicates — all confirm-first. New campaigns/ad sets with fresh targeting, bids and rules are made in Ads Manager
-  (or by duplicating an existing ad set). Not tested against the live API in CI (fixture-tested only).
+- **Ads Manager changes cover the common cases, all confirm-first**: new campaigns (Sales/Leads/Traffic/Awareness) and
+  ad sets, new ads, pause/activate, daily budgets, duplicates. Not built: messaging/app/catalog campaigns, lifetime
+  budgets, bid caps, custom/lookalike audience creation, deleting, editing live creatives. Not tested against the live
+  API in CI (fixture-tested only) — try a PAUSED campaign first.
 - **Competitor sales are not public**; positioning is an estimate from observable signals and says so.
 - **Ad Library API**: Meta only returns _commercial_ ads delivered in the **EU** (plus political/issue ads
   worldwide). For other countries (e.g. Bangladesh), browse the public Ad Library (`get_ad_library_link`) and save

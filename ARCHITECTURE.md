@@ -626,9 +626,12 @@ without an explicit, per-change user confirmation_.
    `confirmed_via: tool_permission`.
 3. Execution runs exactly the stored parameters; results (ids) and failures, including partial results, are logged.
 
-**Scope:** new ads (image/video upload → creative → ad) in an existing ad set; pause/activate campaign, ad set or
-ad; daily budget of an ad set or campaign-budget campaign; duplicate ad or ad set (`/copies`). Not in scope: creating
-campaigns/ad sets from scratch (targeting, bidding), deleting anything, editing live creatives.
+**Scope:** new campaigns with their first ad set (`propose_new_campaign`: Sales/Leads with the project pixel,
+Traffic, Awareness; campaign or ad set daily budget; locations, age, gender, interests, Advantage+ audience,
+placements, schedule — payloads built in `src/sources/metaApi/campaigns.ts`); new ad sets in existing campaigns
+(`propose_new_adset`); new ads (image/video upload → creative → ad); pause/activate; daily budgets; duplicate ad or ad
+set (`/copies`); read-only `search_targeting` for location keys and interest ids. Not in scope: messaging/app/catalog
+campaigns, lifetime budgets, bid caps, audience creation, deleting anything, editing live creatives.
 
 **Safeguards:** `META_WRITE_ENABLED` per project (off by default; never inherited from the global `.env`), 30-minute
 proposal expiry, ownership check before proposing and again before executing, budget cap

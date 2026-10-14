@@ -46,6 +46,8 @@ META_WRITE_ENABLED=false
 # Facebook Page (and optional Instagram account id) new ads are published from
 META_PAGE_ID=
 META_INSTAGRAM_USER_ID=
+# Meta Pixel used by Sales/Leads campaigns created from here
+META_PIXEL_ID=
 # Safety cap: highest daily budget (account currency) a confirmed change may set
 META_MAX_DAILY_BUDGET=
 `;

@@ -20,7 +20,7 @@ export const launchAds: PromptDef = {
         "1. `get_setup_status` and `list_ad_actions` (status pending) — if managing ads is off for this project, stop and explain how to enable it (`configure_project_meta` with write_enabled, page_id; token with ads_management). Don't enable it unless I ask.",
         `2. \`list_creative_files\`${args.files ? ` — use only: ${args.files}` : " — use the files that are not in an ad yet"}.`,
         '3. Context for the copy: `get_report` (type "content_plan") to match each file to its planned angle/hook, `get_top_creatives` (period "last_30d") for wording that works, and `get_business_profile` for brand voice, language, offer and landing page.',
-        "4. `get_meta_structure` — pick the best existing ad set for each creative and explain why (performance via `get_breakdown` level adset if useful).",
+        "4. `get_meta_structure` — pick the best existing ad set for each creative and explain why (performance via `get_breakdown` level adset if useful). If no ad set fits, offer a new one: `propose_new_adset` in an existing campaign, or `propose_new_campaign` (see the `plan_campaign` prompt) — each confirmed by me first.",
         "5. For each file, show me a draft: ad set, ad name, primary text, headline, description, CTA, link — and ask whether it should start **ACTIVE** or **PAUSED**. Let me edit.",
         "6. When I approve a draft, call `propose_new_ad` and show me the returned preview (including warnings). Only after I say yes to that preview, call `execute_ad_action` with its action_id. One ad at a time.",
         "7. If a video is still processing, tell me and call `execute_ad_action` again for that action a few minutes later.",
