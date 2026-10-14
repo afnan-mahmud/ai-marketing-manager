@@ -1,6 +1,6 @@
-import { copyFileSync, existsSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import { mapColumns, normalizeHeader } from "../../src/sources/metaExport/columnMap.js";
 import {
@@ -68,8 +68,8 @@ describe("column mapping", () => {
 });
 
 describe("normalizeExport header variants", () => {
-  it("variant A: Ads Manager default columns, creatives, summary row skipped", () => {
-    const r = normalizeExport(readTable(fixture("export-variant-a.csv")), "a.csv");
+  it("variant A: Ads Manager default columns, creatives, summary row skipped", async () => {
+    const r = normalizeExport(await readTable(fixture("export-variant-a.csv")), "a.csv");
     expect(r.rows).toHaveLength(3);
     expect(r.rows_skipped).toBe(1);
     expect(r.currency).toBe("BDT");
@@ -82,8 +82,8 @@ describe("normalizeExport header variants", () => {
     expect(r.date_max).toBe("2026-10-02");
   });
 
-  it("variant B: ids, alternative names, $ amounts, em-dash, unknown column warning", () => {
-    const r = normalizeExport(readTable(fixture("export-variant-b.csv")), "b.csv");
+  it("variant B: ids, alternative names, $ amounts, em-dash, unknown column warning", async () => {
+    const r = normalizeExport(await readTable(fixture("export-variant-b.csv")), "b.csv");
     expect(r.rows).toHaveLength(3);
     const b1 = r.rows.find((x) => x.ad_id === "333" && x.date === "2026-10-02")!;
     expect(b1.spend).toBe(410);
@@ -98,8 +98,8 @@ describe("normalizeExport header variants", () => {
     expect(r.warnings.join(" ")).not.toContain("CPM");
   });
 
-  it("variant C: no Day column, Results mapped via indicator, Bengali digits and ৳", () => {
-    const r = normalizeExport(readTable(fixture("export-variant-c.csv")), "c.csv");
+  it("variant C: no Day column, Results mapped via indicator, Bengali digits and ৳", async () => {
+    const r = normalizeExport(await readTable(fixture("export-variant-c.csv")), "c.csv");
     expect(r.rows).toHaveLength(2);
     expect(r.rows.every((x) => x.date === "2026-10-07")).toBe(true);
     const chat = r.rows.find((x) => x.ad_name === "Chat Ad")!;
@@ -111,12 +111,11 @@ describe("normalizeExport header variants", () => {
     expect(r.warnings.some((w) => w.includes("No 'Day' column"))).toBe(true);
   });
 
-  it("rejects a malformed file listing what it found", () => {
-    expect(() => normalizeExport(readTable(fixture("export-malformed.csv")), "bad.csv")).toThrow(
-      ImportFormatError,
-    );
+  it("rejects a malformed file listing what it found", async () => {
+    const table = await readTable(fixture("export-malformed.csv"));
+    expect(() => normalizeExport(table, "bad.csv")).toThrow(ImportFormatError);
     try {
-      normalizeExport(readTable(fixture("export-malformed.csv")), "bad.csv");
+      normalizeExport(table, "bad.csv");
     } catch (e) {
       expect((e as Error).message).toContain("Amount spent");
       expect((e as Error).message).toContain(
@@ -152,9 +151,11 @@ describe("normalizeExport header variants", () => {
     expect(r.warnings.some((w) => w.includes("duplicate"))).toBe(true);
   });
 
-  it("reads XLSX workbooks", () => {
+  it("reads XLSX workbooks (dates, formulas) and rejects legacy .xls", async () => {
     const ctx = createTestContext();
-    const ws = XLSX.utils.aoa_to_sheet([
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Sheet1");
+    ws.addRows([
       [
         "Day",
         "Campaign name",
@@ -164,32 +165,33 @@ describe("normalizeExport header variants", () => {
         "Impressions",
         "Purchases",
       ],
-      [new Date(2026, 9, 1), "C", "S", "A", 100.5, 1000, 2],
-      [new Date(2026, 9, 2), "C", "S", "A", 200, 2000, 1],
+      [new Date(Date.UTC(2026, 9, 1)), "C", "S", "A", 100.5, 1000, 2],
+      ["2026-10-02", "C", "S", "A", { formula: "100*2", result: 200 }, 2000, 1],
     ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
     const file = join(ctx.paths.inbox, "export.xlsx");
-    XLSX.writeFile(wb, file);
-    const r = normalizeExport(readTable(file), "export.xlsx");
+    await wb.xlsx.writeFile(file);
+    const r = normalizeExport(await readTable(file), "export.xlsx");
     expect(r.rows.map((x) => x.date)).toEqual(["2026-10-01", "2026-10-02"]);
     expect(r.rows[0]!.spend).toBe(100.5);
     expect(r.rows[1]!.purchases).toBe(1);
+    expect(r.rows[1]!.spend).toBe(200);
+    writeFileSync(join(ctx.paths.inbox, "old.xls"), "x");
+    await expect(readTable(join(ctx.paths.inbox, "old.xls"))).rejects.toThrow(/xlsx or .csv/);
   });
 });
 
 describe("AdsService folder import", () => {
-  it("is idempotent: importing the sample twice gives the same row count", () => {
+  it("is idempotent: importing the sample twice gives the same row count", async () => {
     const ctx = createTestContext({ business: "example" });
     copyFileSync(SAMPLE_CSV, join(ctx.paths.inbox, "sample.csv"));
-    const first = ctx.services.ads.importFromFolder();
+    const first = await ctx.services.ads.importFromFolder();
     expect(first.totals.rows_upserted).toBe(333);
     expect(ctx.repos.ads.countRows()).toBe(333);
     expect(existsSync(join(ctx.paths.inbox, "sample.csv"))).toBe(false);
     expect(readdirSync(ctx.paths.processed)[0]).toMatch(/^20261014-0900_sample\.csv$/);
 
     copyFileSync(SAMPLE_CSV, join(ctx.paths.inbox, "sample-again.csv"));
-    ctx.services.ads.importFromFolder();
+    await ctx.services.ads.importFromFolder();
     expect(ctx.repos.ads.countRows()).toBe(333);
     const cov = ctx.services.ads.coverage();
     expect(cov.ads).toBe(12);
@@ -199,14 +201,14 @@ describe("AdsService folder import", () => {
     expect(cov.gaps).toEqual([]);
   });
 
-  it("dry run neither writes nor moves files; failed files stay in the inbox", () => {
+  it("dry run neither writes nor moves files; failed files stay in the inbox", async () => {
     const ctx = createTestContext();
     copyFileSync(SAMPLE_CSV, join(ctx.paths.inbox, "sample.csv"));
     copyFileSync(fixture("export-malformed.csv"), join(ctx.paths.inbox, "bad.csv"));
-    const dry = ctx.services.ads.importFromFolder(true);
+    const dry = await ctx.services.ads.importFromFolder(true);
     expect(dry.totals.rows_upserted).toBe(333);
     expect(ctx.repos.ads.countRows()).toBe(0);
-    const real = ctx.services.ads.importFromFolder();
+    const real = await ctx.services.ads.importFromFolder();
     const bad = real.files.find((f) => f.file === "bad.csv")!;
     expect(bad.status).toBe("failed");
     expect(bad.hint).toBeDefined();

@@ -164,7 +164,7 @@ describe("competitor tools", () => {
 
   it("returns positioning scores with coverage %, and a profile", async () => {
     const ctx = createTestContext({ business: "example", fetch: fakeWeb({ v: 1 }) });
-    importSample(ctx);
+    await importSample(ctx);
     await call(ctx, "snapshot_competitor_websites", {});
     writeFileSync(
       join(ctx.paths.competitors, "competitor-a.csv"),

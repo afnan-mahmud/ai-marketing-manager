@@ -20,6 +20,7 @@ export interface FatigueResult {
 }
 
 const pct = (v: number) => Math.round(v * 1000) / 10;
+const r4 = (v: number) => Math.round(v * 10000) / 10000;
 
 /**
  * Creative fatigue: a former winner whose recent frequency ≥ threshold AND
@@ -61,8 +62,8 @@ export function evaluateFatigue(
         code: "CTR_DROP",
         value: pct(change),
         target: -pct(FATIGUE_CTR_DROP),
-        recent: recent.ctr,
-        baseline: baseline.ctr,
+        recent: r4(recent.ctr),
+        baseline: r4(baseline.ctr),
       });
   }
 

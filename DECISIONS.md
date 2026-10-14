@@ -146,3 +146,16 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   different phrasings of the same trend count together; prompts also ask Claude to reuse the exact wording.
   `current_streak` counts consecutive snapshot days (ending at the latest snapshot) on which a trend appeared.
 - Several snapshots per day are allowed (each research run is kept).
+
+## Dependencies & tooling
+
+- **Node.js ≥ 22** (spec said ≥ 20). Node 20 reached end-of-life in April 2026, and current `better-sqlite3` (13)
+  and `vitest` (5) require Node 22+. CI tests Node 22 and 24.
+- **`exceljs` instead of SheetJS `xlsx`.** The `xlsx` package on npm (0.18.5) has unfixed high-severity advisories
+  (prototype pollution, ReDoS); fixed builds are only published on SheetJS's own CDN, which complicates installs
+  (and is blocked in some sandboxes/CI). `exceljs` reads `.xlsx` (dates, formulas, rich text). Legacy `.xls` is
+  rejected with a clear message to re-export as `.xlsx`/`.csv`. Workbook dates are read as UTC calendar days.
+  `uuid` is pinned to ≥ 11.1.1 via `overrides` so `npm audit` is clean.
+- `npm run build` cleans `dist/` first, so removed modules can't linger in the build output.
+- `scripts/smoke-test.mjs` starts the built server over stdio with a temp data dir and runs a few tools on the
+  sample data; CI runs it after the build.

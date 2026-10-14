@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { callTool, type AnyToolDef } from "../../src/mcp/tooling.js";
 import { allTools } from "../../src/mcp/tools/index.js";
 import type { AppContext } from "../../src/context.js";
@@ -21,7 +21,7 @@ const verdictOf = (data: { groups: Record<string, { name: string }[]> }) => {
 
 describe("performance tools on sample data (example targets)", () => {
   const ctx = createTestContext({ business: "example" });
-  importSample(ctx);
+  beforeAll(() => importSample(ctx));
 
   it("gives the seeded ads the right verdicts", async () => {
     const { data, isError } = await call(ctx, "get_winners_and_losers", {
@@ -142,7 +142,7 @@ describe("error handling", () => {
   });
   it("anchors relative periods to the last data day when data is stale", async () => {
     const ctx = createTestContext({ business: "example", now: new Date("2026-10-20T09:00:00") });
-    importSample(ctx);
+    await importSample(ctx);
     const { data } = await call(ctx, "get_performance_summary", { period: "yesterday" });
     expect(data.period).toEqual({ since: "2026-10-13", until: "2026-10-13" });
     expect(data.warnings.join(" ")).toMatch(/stale/);

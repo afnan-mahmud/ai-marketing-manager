@@ -34,7 +34,7 @@ describe("MCP server surface", () => {
 
   it("calls a tool end to end over the protocol", async () => {
     const { client, ctx } = await connect("example");
-    importSample(ctx);
+    await importSample(ctx);
     const res = await client.callTool({
       name: "get_performance_summary",
       arguments: { period: "last_7d" },

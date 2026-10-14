@@ -8,11 +8,11 @@
     "ai-marketing-manager": "dist/index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
     "start": "node dist/index.js",
     "dev": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
@@ -21,7 +21,10 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm run typecheck && npm run format:check && npm test"
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm test",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "smoke": "node scripts/smoke-test.mjs",
+    "sample": "node scripts/generate-sample-data.mjs"
   },
   "keywords": [
     "mcp",
@@ -36,8 +39,8 @@
     "cheerio": "^1.2.0",
     "date-fns": "^4.4.0",
     "dotenv": "^18.0.7",
+    "exceljs": "^4.4.0",
     "papaparse": "^5.7.0",
-    "xlsx": "^0.18.5",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
@@ -53,5 +56,17 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.4"
-  }
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/afnan-mahmud/ai-marketing-manager.git"
+  },
+  "files": [
+    "dist",
+    "config/business.example.yaml",
+    "examples"
+  ]
 }

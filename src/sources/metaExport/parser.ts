@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { extname } from "node:path";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import type { AdCreative, AdDailyRow, CreativeFormat, RawCounts } from "../../types/ads.js";
 import { COUNT_FIELDS } from "../../types/ads.js";
 import { toIsoDate } from "../../utils/dates.js";
@@ -14,11 +14,16 @@ export interface RawTable {
   records: Record<string, unknown>[];
 }
 
-/** Reads a CSV or XLSX/XLS file into header + records (first sheet for workbooks). */
-export function readTable(filePath: string): RawTable {
+/** Reads a CSV or XLSX file into header + records (first worksheet for workbooks). */
+export async function readTable(filePath: string): Promise<RawTable> {
   const ext = extname(filePath).toLowerCase();
   if (ext === ".csv") return parseCsv(readFileSync(filePath, "utf8"));
-  if (ext === ".xlsx" || ext === ".xls") return parseWorkbook(readFileSync(filePath));
+  if (ext === ".xlsx") return parseWorkbook(readFileSync(filePath));
+  if (ext === ".xls") {
+    throw new ImportFormatError(
+      "Legacy .xls files aren't supported. Export as .xlsx or .csv from Ads Manager.",
+    );
+  }
   throw new ImportFormatError(`Unsupported file type "${ext}". Use .csv or .xlsx.`);
 }
 
@@ -36,14 +41,41 @@ export function parseCsv(text: string): RawTable {
   return { headers: result.meta.fields ?? [], records: result.data };
 }
 
-export function parseWorkbook(buf: Buffer): RawTable {
-  const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) throw new ImportFormatError("Workbook has no sheets.");
-  const ws = wb.Sheets[sheetName]!;
-  const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
-  const headerRow = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, range: 0 })[0] ?? [];
-  const headers = headerRow.map((h) => String(h ?? "").trim());
+/** Plain value of an ExcelJS cell (rich text, formulas and hyperlinks flattened). */
+function cellValue(v: ExcelJS.CellValue): unknown {
+  if (v === null || v === undefined) return "";
+  // ExcelJS dates are UTC-based: take the UTC calendar day so negative time zones don't shift it.
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? "" : v.toISOString().slice(0, 10);
+  if (typeof v !== "object") return v;
+  if ("richText" in v) return v.richText.map((r) => r.text).join("");
+  if ("result" in v) return v.result ?? "";
+  if ("text" in v) return v.text;
+  if ("error" in v) return "";
+  return String(v);
+}
+
+export async function parseWorkbook(buf: Buffer): Promise<RawTable> {
+  const wb = new ExcelJS.Workbook();
+  try {
+    await wb.xlsx.load(buf as unknown as ArrayBuffer);
+  } catch (err) {
+    throw new ImportFormatError(`Could not read the workbook: ${(err as Error).message}`);
+  }
+  const ws = wb.worksheets[0];
+  if (!ws) throw new ImportFormatError("Workbook has no sheets.");
+  const headers: string[] = [];
+  ws.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
+    headers[col - 1] = String(cellValue(cell.value) ?? "").trim();
+  });
+  const records: Record<string, unknown>[] = [];
+  ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const rec: Record<string, unknown> = {};
+    headers.forEach((h, i) => {
+      if (h) rec[h] = cellValue(row.getCell(i + 1).value);
+    });
+    records.push(rec);
+  });
   return { headers, records };
 }
 

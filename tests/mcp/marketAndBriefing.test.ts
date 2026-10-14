@@ -121,7 +121,7 @@ describe("daily briefing end to end (scripted client following the prompt)", () 
             })) as typeof fetch,
     });
     // Data arrives the way a user would provide it: an export in the inbox.
-    importSample(ctx);
+    await importSample(ctx);
     const server = createServer(ctx);
     const [ct, st] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "briefing", version: "1" });

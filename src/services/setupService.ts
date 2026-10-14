@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import type { AppContext } from "../context.js";
 import { daysBetween } from "../utils/dates.js";
 
-export const IMPORTABLE_EXTENSIONS = [".csv", ".xlsx", ".xls"];
+export const IMPORTABLE_EXTENSIONS = [".csv", ".xlsx", ".xls"]; // .xls is listed so it gets a clear error
 
 export function listInboxFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];

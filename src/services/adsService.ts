@@ -119,10 +119,10 @@ export class AdsService {
   }
 
   /** Parses and (unless dryRun) upserts one export file. Does not move it. */
-  importFile(filePath: string, dryRun = false): FileImportResult {
+  async importFile(filePath: string, dryRun = false): Promise<FileImportResult> {
     const name = basename(filePath);
     try {
-      const result = normalizeExport(readTable(filePath), name);
+      const result = normalizeExport(await readTable(filePath), name);
       const warnings = [...result.warnings];
       const bizCurrency = this.ctx.business.tryLoad()?.business.currency;
       if (result.currency && bizCurrency && result.currency !== bizCurrency) {
@@ -176,7 +176,7 @@ export class AdsService {
   }
 
   /** Imports every CSV/XLSX in data/inbox/; successful files move to data/processed/YYYYMMDD-HHmm_<name>. */
-  importFromFolder(dryRun = false) {
+  async importFromFolder(dryRun = false) {
     const { inbox, processed } = this.ctx.paths;
     const files = listInboxFiles(inbox);
     if (files.length === 0) {
@@ -192,7 +192,7 @@ export class AdsService {
     const stamp = format(this.ctx.now(), "yyyyMMdd-HHmm");
     const results: FileImportResult[] = [];
     for (const f of files) {
-      const r = this.importFile(join(inbox, f), dryRun);
+      const r = await this.importFile(join(inbox, f), dryRun);
       if (r.status === "imported") {
         const target = join(processed, `${stamp}_${f}`);
         renameSync(join(inbox, f), target);

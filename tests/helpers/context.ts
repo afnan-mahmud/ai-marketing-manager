@@ -43,8 +43,8 @@ export function createTestContext(opts: TestContextOptions = {}): AppContext & {
 }
 
 /** Copies the sample export into the inbox and imports it. */
-export function importSample(ctx: AppContext): void {
+export async function importSample(ctx: AppContext): Promise<void> {
   copyFileSync(SAMPLE_CSV, join(ctx.paths.inbox, "sample.csv"));
-  const r = ctx.services.ads.importFromFolder(false);
+  const r = await ctx.services.ads.importFromFolder(false);
   if (r.totals.rows_upserted === 0) throw new Error("sample import failed");
 }
