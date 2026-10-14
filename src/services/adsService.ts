@@ -2,8 +2,11 @@ import { mkdirSync, renameSync } from "node:fs";
 import { basename, join } from "node:path";
 import { format } from "date-fns";
 import type { AppContext } from "../context.js";
+import { MetaApiClient } from "../sources/metaApi/client.js";
+import { fetchCreatives } from "../sources/metaApi/creatives.js";
+import { fetchDailyInsights } from "../sources/metaApi/insights.js";
 import { normalizeExport, readTable } from "../sources/metaExport/parser.js";
-import { listDates, shiftDate } from "../utils/dates.js";
+import { listDates, rangeLength, shiftDate, type DateRange } from "../utils/dates.js";
 import { AppError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 import { listInboxFiles } from "./setupService.js";
@@ -24,8 +27,96 @@ export interface FileImportResult {
   moved_to?: string;
 }
 
+/** Default API window: re-pull the last 7 days because attribution keeps updating. */
+export const DEFAULT_SYNC_DAYS = 7;
+const MAX_SYNC_DAYS = 93;
+
 export class AdsService {
   constructor(private readonly ctx: AppContext) {}
+
+  metaClient(token = this.ctx.env.META_ACCESS_TOKEN): MetaApiClient {
+    if (!token) {
+      throw new AppError(
+        "The Meta Marketing API is not configured.",
+        "Set META_ACCESS_TOKEN (ads_read only) and META_AD_ACCOUNT_ID in .env and restart the server — or use folder import (data/inbox/) instead.",
+      );
+    }
+    return new MetaApiClient({
+      token,
+      version: this.ctx.env.META_API_VERSION,
+      fetch: this.ctx.fetch,
+      sleep: this.ctx.sleep,
+    });
+  }
+
+  /** Pulls daily ad-level insights + creatives from the Marketing API into the same tables as exports. */
+  async syncFromMeta(since?: string, until?: string) {
+    const accountId = this.ctx.env.META_AD_ACCOUNT_ID;
+    const client = this.metaClient();
+    if (!accountId) {
+      throw new AppError(
+        "META_AD_ACCOUNT_ID is not set.",
+        "Add your numeric ad account id (without act_) to .env and restart the server.",
+      );
+    }
+    const today = this.ctx.today();
+    const range: DateRange = {
+      since: since ?? shiftDate(today, -DEFAULT_SYNC_DAYS),
+      until: until ?? shiftDate(today, -1),
+    };
+    if (range.since > range.until) throw new AppError("since must be on or before until.");
+    if (rangeLength(range) > MAX_SYNC_DAYS) {
+      throw new AppError(
+        `Sync at most ${MAX_SYNC_DAYS} days per call.`,
+        "Split the range into several calls.",
+      );
+    }
+
+    const rows = await fetchDailyInsights(client, accountId, range);
+    const upserted = this.ctx.repos.ads.upsertDaily(rows);
+    const warnings: string[] = [];
+    const adIds = [...new Set(rows.map((r) => r.ad_id))];
+    let creatives = 0;
+    try {
+      const fetched = await fetchCreatives(client, adIds);
+      creatives = this.ctx.repos.ads.upsertCreatives(fetched);
+    } catch (err) {
+      warnings.push(
+        `Insights synced, but creatives could not be fetched: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    const exportOverlap = this.ctx.repos.ads
+      .getDaily(range)
+      .filter((r) => r.source === "export" && r.ad_id.startsWith("h_")).length;
+    if (exportOverlap > 0) {
+      warnings.push(
+        `${exportOverlap} row(s) in this range came from exports without Ad IDs and will be double-counted alongside API data. Re-export with the "Ad ID" column, or use only one source for a date range.`,
+      );
+    }
+    if (rows.length === 0)
+      warnings.push(
+        "Meta returned no rows: the account had no delivery in this range, or the token can't see it.",
+      );
+    this.ctx.repos.ads.logImport({
+      source: "api",
+      file_name: null,
+      rows_read: rows.length,
+      rows_upserted: upserted,
+      date_min: range.since,
+      date_max: range.until,
+      warnings,
+    });
+    return {
+      summary: `Synced ${rows.length} daily ad row(s) for ${range.since}..${range.until} from act_${accountId} (${adIds.length} ads, ${creatives} creatives).`,
+      range,
+      rows: rows.length,
+      rows_upserted: upserted,
+      ads: adIds.length,
+      creatives_updated: creatives,
+      warnings,
+      data_last_date: this.ctx.repos.ads.lastDate(),
+    };
+  }
 
   /** Parses and (unless dryRun) upserts one export file. Does not move it. */
   importFile(filePath: string, dryRun = false): FileImportResult {

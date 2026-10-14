@@ -1,0 +1,56 @@
+{
+ "9001": {
+  "id": "9001",
+  "creative": {
+   "id": "c1",
+   "object_type": "VIDEO",
+   "call_to_action_type": "SHOP_NOW",
+   "thumbnail_url": "https://example.com/t1.jpg",
+   "object_story_spec": {
+    "video_data": {
+     "title": "Real results in 30 days",
+     "message": "I tried it for a month\u2026",
+     "call_to_action": {
+      "type": "SHOP_NOW",
+      "value": {
+       "link": "https://mybrand.com/serum"
+      }
+     }
+    }
+   }
+  }
+ },
+ "9002": {
+  "id": "9002",
+  "creative": {
+   "id": "c2",
+   "object_type": "SHARE",
+   "title": "Now 20% off",
+   "body": "Limited time price drop",
+   "call_to_action_type": "SHOP_NOW",
+   "link_url": "https://mybrand.com/sale"
+  }
+ },
+ "9003": {
+  "id": "9003",
+  "creative": {
+   "id": "c3",
+   "object_type": "SHARE",
+   "object_story_spec": {
+    "link_data": {
+     "name": "Complete routine bundle",
+     "message": "Serum + SPF, save 300",
+     "link": "https://mybrand.com/bundle",
+     "child_attachments": [
+      {},
+      {},
+      {}
+     ],
+     "call_to_action": {
+      "type": "ORDER_NOW"
+     }
+    }
+   }
+  }
+ }
+}

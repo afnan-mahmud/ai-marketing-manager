@@ -1,0 +1,858 @@
+{
+ "data": [
+  {
+   "date_start": "2026-10-07",
+   "date_stop": "2026-10-07",
+   "ad_id": "9001",
+   "ad_name": "UGC Testimonial",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "8"
+    },
+    {
+     "action_type": "purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "5000"
+    },
+    {
+     "action_type": "purchase",
+     "value": "5000"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-07",
+   "date_stop": "2026-10-07",
+   "ad_id": "9002",
+   "ad_name": "Price Drop Static",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "2"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "1"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "1250"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1250"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-07",
+   "date_stop": "2026-10-07",
+   "ad_id": "9003",
+   "ad_name": "Bundle Carousel",
+   "adset_id": "8002",
+   "adset_name": "Retargeting 30d",
+   "campaign_id": "7002",
+   "campaign_name": "Retargeting | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "6"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "3750"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3750"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-08",
+   "date_stop": "2026-10-08",
+   "ad_id": "9001",
+   "ad_name": "UGC Testimonial",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "8"
+    },
+    {
+     "action_type": "purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "5000"
+    },
+    {
+     "action_type": "purchase",
+     "value": "5000"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-08",
+   "date_stop": "2026-10-08",
+   "ad_id": "9002",
+   "ad_name": "Price Drop Static",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "2"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "1"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "1250"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1250"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-08",
+   "date_stop": "2026-10-08",
+   "ad_id": "9003",
+   "ad_name": "Bundle Carousel",
+   "adset_id": "8002",
+   "adset_name": "Retargeting 30d",
+   "campaign_id": "7002",
+   "campaign_name": "Retargeting | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "6"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "3750"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3750"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-09",
+   "date_stop": "2026-10-09",
+   "ad_id": "9001",
+   "ad_name": "UGC Testimonial",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "8"
+    },
+    {
+     "action_type": "purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "5000"
+    },
+    {
+     "action_type": "purchase",
+     "value": "5000"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-09",
+   "date_stop": "2026-10-09",
+   "ad_id": "9002",
+   "ad_name": "Price Drop Static",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "2"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "1"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "1250"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1250"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-09",
+   "date_stop": "2026-10-09",
+   "ad_id": "9003",
+   "ad_name": "Bundle Carousel",
+   "adset_id": "8002",
+   "adset_name": "Retargeting 30d",
+   "campaign_id": "7002",
+   "campaign_name": "Retargeting | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "6"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "3750"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3750"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-10",
+   "date_stop": "2026-10-10",
+   "ad_id": "9001",
+   "ad_name": "UGC Testimonial",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "12"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "8"
+    },
+    {
+     "action_type": "purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "4"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "5000"
+    },
+    {
+     "action_type": "purchase",
+     "value": "5000"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-10",
+   "date_stop": "2026-10-10",
+   "ad_id": "9002",
+   "ad_name": "Price Drop Static",
+   "adset_id": "8001",
+   "adset_name": "Broad Women 20-35",
+   "campaign_id": "7001",
+   "campaign_name": "Serum | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "3"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "2"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "1"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "1"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "1250"
+    },
+    {
+     "action_type": "purchase",
+     "value": "1250"
+    }
+   ]
+  },
+  {
+   "date_start": "2026-10-10",
+   "date_stop": "2026-10-10",
+   "ad_id": "9003",
+   "ad_name": "Bundle Carousel",
+   "adset_id": "8002",
+   "adset_name": "Retargeting 30d",
+   "campaign_id": "7002",
+   "campaign_name": "Retargeting | Sales",
+   "objective": "OUTCOME_SALES",
+   "spend": "1200.00",
+   "impressions": "9000",
+   "reach": "7000",
+   "clicks": "360",
+   "inline_link_clicks": "180",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "180"
+    },
+    {
+     "action_type": "landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "omni_landing_page_view",
+     "value": "144"
+    },
+    {
+     "action_type": "add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "omni_add_to_cart",
+     "value": "9"
+    },
+    {
+     "action_type": "initiate_checkout",
+     "value": "6"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "omni_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "offsite_conversion.fb_pixel_purchase",
+     "value": "3"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2700"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "omni_purchase",
+     "value": "3750"
+    },
+    {
+     "action_type": "purchase",
+     "value": "3750"
+    }
+   ],
+   "video_thruplay_watched_actions": [
+    {
+     "action_type": "video_view",
+     "value": "675"
+    }
+   ]
+  }
+ ],
+ "paging": {
+  "cursors": {
+   "after": "abc"
+  },
+  "next": "https://graph.facebook.com/v21.0/act_123/insights?after=abc&access_token=SECRET_TOKEN"
+ }
+}

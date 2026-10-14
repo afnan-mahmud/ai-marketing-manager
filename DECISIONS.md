@@ -83,3 +83,22 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   always matches what the tools compute. The playbook is a static Markdown file for community edits.
 - Competitors in business.yaml are mirrored into the DB (`syncFromConfig`) whenever the profile is edited
   through the tool and before competitor tools run, so manual YAML edits are picked up too.
+
+## Meta Marketing API
+
+- **Overlapping action types are never summed.** Meta reports one purchase as `omni_purchase`, `purchase` and
+  `offsite_conversion.fb_pixel_purchase` at once; `ACTION_TYPE_MAP` lists types in priority order and the first one
+  present wins. Same for add-to-cart, checkout, leads and landing page views.
+- Link clicks come from `inline_link_clicks` (fallback: the `link_click` action); 3-second video views from the
+  `video_view` action; ThruPlays from `video_thruplay_watched_actions`.
+- **Retries:** HTTP 429/5xx, `is_transient`, and Graph rate-limit codes (4, 17, 32, 613, 800xx) back off
+  exponentially (1s, 2s, 4s, 8s; capped at 16s; 4 retries) — short enough that an MCP call doesn't hang for minutes.
+  Usage headers (`x-business-use-case-usage`, `x-ad-account-usage`, `x-app-usage`) ≥ 80% log a warning.
+- Errors are mapped to friendly messages (expired token 190, permissions 10/200-299, bad params 100, rate limits),
+  and every message/URL passes through `redact()` so the token never reaches logs or the client.
+- `sync_ads_from_meta` is limited to 93 days per call (synchronous insights paging); larger backfills should be
+  split. Creatives are fetched in batches of 50 via `?ids=`; a creative failure doesn't fail the sync.
+- **Mixing sources:** export rows without Ad IDs get hashed ids, so the same ad imported from an export _and_
+  synced from the API would be counted twice. The sync warns when it detects this; the fix is to include the
+  "Ad ID" column in exports (then ids match and rows UPSERT onto each other).
+- The account id accepts `act_123` or `123` (the `act_` prefix is stripped in env parsing).

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isoDateSchema } from "../../utils/dates.js";
 import type { AnyToolDef } from "../tooling.js";
 import { defineTool } from "../tooling.js";
 
@@ -23,4 +24,18 @@ export const getDataCoverage = defineTool({
   handler: (_args, ctx) => ctx.services.ads.coverage(),
 });
 
-export const dataTools: AnyToolDef[] = [importAdsFromFolder, getDataCoverage];
+export const syncAdsFromMeta = defineTool({
+  name: "sync_ads_from_meta",
+  title: "Sync from Meta Marketing API",
+  description:
+    "Pulls daily ad-level insights (spend, impressions, clicks, conversions, video views) and ad creatives (headline, text, CTA, format) from the Meta Marketing API into the same tables as exports. Read-only (ads_read). Default: the last 7 days, to capture late attribution.",
+  inputSchema: {
+    since: isoDateSchema.optional().describe("Start date YYYY-MM-DD (default 7 days ago)."),
+    until: isoDateSchema.optional().describe("End date YYYY-MM-DD (default yesterday)."),
+  },
+  readOnly: false,
+  openWorld: true,
+  handler: (args, ctx) => ctx.services.ads.syncFromMeta(args.since, args.until),
+});
+
+export const dataTools: AnyToolDef[] = [importAdsFromFolder, syncAdsFromMeta, getDataCoverage];
