@@ -1,0 +1,56 @@
+{
+  "name": "ai-marketing-manager",
+  "version": "0.1.0",
+  "description": "Open-source MCP server that turns Claude into a personal AI marketing manager for Meta ads.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ai-marketing-manager": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "marketing",
+    "meta-ads",
+    "facebook-ads"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "better-sqlite3": "^13.0.3",
+    "cheerio": "^1.2.0",
+    "date-fns": "^4.4.0",
+    "dotenv": "^18.0.7",
+    "papaparse": "^5.7.0",
+    "xlsx": "^0.18.5",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.5",
+    "@types/papaparse": "^5.5.2",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}

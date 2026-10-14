@@ -1,0 +1,52 @@
+# Copy this file to config/business.yaml and edit it.
+# config/business.yaml is gitignored — your business details never leave your machine.
+
+business:
+  name: "My Brand"
+  sector: "skincare" # used to frame market research
+  country: "BD" # ISO code; used for Ad Library + market context
+  currency: "BDT"
+  language: "bn" # language for content/script suggestions (e.g. en, bn)
+  website: "https://mybrand.com"
+  # extra_urls:                   # optional extra pages of your own site to snapshot
+  #   - "https://mybrand.com/products/vitamin-c-serum"
+  products:
+    - name: "Vitamin C Serum"
+      price: 1200
+      margin_pct: 45
+  target_audience: "Women 20-35, urban, Dhaka & Chattogram"
+  brand_voice: "friendly, honest, science-backed"
+
+goals:
+  primary_kpi: "purchases" # purchases | leads | messages | link_clicks
+  targets: # used to classify ads; all optional
+    max_cpa: 400
+    min_roas: 2.5
+    min_ctr_pct: 1.2
+  monthly_budget: 150000
+
+classification: # thresholds for winner/loser logic
+  min_spend_for_verdict: 1000 # below this, ad is "learning"
+  min_impressions_for_verdict: 3000
+  fatigue_frequency: 3.0
+
+competitors:
+  - name: "Competitor A"
+    website: "https://competitor-a.com"
+    facebook_page_id: "" # optional, for Ad Library
+    notes: "market leader, heavy influencer content"
+    # extra_urls: ["https://competitor-a.com/pricing"]
+  - name: "Competitor B"
+    website: "https://competitor-b.com"
+
+# Optional: weights for the Market Presence Score (0 disables a signal).
+# positioning:
+#   weights:
+#     active_ad_count: 1
+#     ad_longevity: 1
+#     creative_velocity: 1
+#     offer_aggressiveness: 1
+#     social_proof: 1
+#     social_following: 1
+#     web_traffic: 1
+#     price_position: 0.5

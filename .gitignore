@@ -1,0 +1,23 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Secrets and personal business settings
+.env
+config/business.yaml
+
+# All user data (keep folder structure)
+data/*
+!data/inbox/
+!data/processed/
+!data/competitors/
+!data/snapshots/
+!data/reports/
+data/inbox/*
+data/processed/*
+data/competitors/*
+data/snapshots/*
+data/reports/*
+!data/*/.gitkeep
