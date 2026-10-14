@@ -1,4 +1,5 @@
 import type { AnyToolDef } from "../tooling.js";
+import { competitorTools } from "./competitorTools.js";
 import { dataTools } from "./dataTools.js";
 import { performanceTools } from "./performanceTools.js";
 import { profileTools } from "./profileTools.js";
@@ -10,5 +11,6 @@ export const allTools: AnyToolDef[] = [
   ...profileTools,
   ...dataTools,
   ...performanceTools,
+  ...competitorTools,
   ...reportTools,
 ];

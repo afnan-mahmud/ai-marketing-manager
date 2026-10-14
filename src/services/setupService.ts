@@ -88,6 +88,7 @@ export class SetupService {
       );
     }
 
+    if (cfg.status === "ok") ctx.services.competitors.syncFromConfig(cfg.config);
     const competitors = ctx.repos.competitors.list();
     const ready = cfg.status === "ok" && lastDate !== null;
     const summary = ready

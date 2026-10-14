@@ -2,6 +2,7 @@ import type { AppContext } from "../context.js";
 import { AdsService } from "./adsService.js";
 import { AnalyticsService } from "./analyticsService.js";
 import { CompetitorService } from "./competitorService.js";
+import { PositioningService } from "./positioningService.js";
 import { ReportService } from "./reportService.js";
 import { SetupService } from "./setupService.js";
 
@@ -11,6 +12,7 @@ export interface Services {
   analytics: AnalyticsService;
   reports: ReportService;
   competitors: CompetitorService;
+  positioning: PositioningService;
 }
 
 export function createServices(ctx: AppContext): Services {
@@ -20,5 +22,6 @@ export function createServices(ctx: AppContext): Services {
     analytics: new AnalyticsService(ctx),
     reports: new ReportService(ctx),
     competitors: new CompetitorService(ctx),
+    positioning: new PositioningService(ctx),
   };
 }

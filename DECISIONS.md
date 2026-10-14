@@ -102,3 +102,38 @@ Non-obvious choices made while building, per ARCHITECTURE.md ("choose the simple
   synced from the API would be counted twice. The sync warns when it detects this; the fix is to include the
   "Ad ID" column in exports (then ids match and rows UPSERT onto each other).
 - The account id accepts `act_123` or `123` (the `act_` prefix is stripped in env parsing).
+
+## Competitors
+
+- **The user's own brand is tracked like a competitor** (`is_self` row named after `business.name`, website from
+  `business.website` + `business.extra_urls`) so website snapshots, signals and positioning apply to it. Tools
+  accept `"self"` / `"me"` as its name.
+- **Competitor tools require business.yaml** (it is the competitor list's source of truth); add/remove edit the
+  YAML (comments preserved) and soft-deactivate in the DB so history is kept.
+- **Web fetching:** robots.txt is fetched once per origin per server run; 4xx = no robots.txt (allowed), 5xx or
+  network failure = treat as disallowed (conservative). The robots.txt request itself counts toward the
+  1 request/second per-host limit. Pages > 3 MB are truncated to 3 MB (not rejected) and flagged. Non-HTML content
+  types are rejected. No cookies, no login, no JavaScript rendering.
+- **Snapshots:** a DB row is stored on every run (so "last checked" is accurate), but the raw text file in
+  `data/snapshots/<brand>/` is only written when the content hash changes. The hash covers title + visible text.
+- **Extraction is heuristic** (regex over visible text): prices with ৳/Tk/BDT/$/€/£/₹/Rs/RM/AED before or after
+  the amount (Bengali digits normalized), offer phrases (% off, free delivery, COD, BOGO, bundles, limited time,
+  codes, guarantees), CTA-like buttons/links, ratings/review/customer counts and testimonial blocks.
+- **Manual competitor ads** are read from `data/competitors/<slug-of-name>.csv|json` and left in place (re-import
+  is an idempotent UPSERT keyed by a hash of headline|body|start_date|landing_url, or an `ad_id` column).
+- **"Proven" = running ≥ 30 days** (start_date or first_seen → today if active, last_seen otherwise), active or not.
+- Ad Library results store `ad_creative_link_captions[0]` (the displayed domain) as `landing_url` — the API doesn't
+  expose the real destination URL.
+
+## Positioning (Market Presence Score)
+
+- Each signal is scored 0–100 **relative to the best brand on that signal**: log scale for heavy-tailed counts
+  (active ads, social proof, followers, traffic), linear for longevity/velocity/offers, and for price the cheapest
+  brand scores 100 (`price_position` = median plausible detected price ÷ the user's average product price; prices
+  outside 0.2×–5× are ignored as unrelated). Missing data is `null` (unknown), never 0, and is excluded from the
+  weighted average; `coverage_pct` reports how much of the total weight had data. Confidence: ≥ 70% high,
+  ≥ 40% medium, else low. Brands with no data get no rank.
+- Own-brand ad signals come from the user's own ad data (complete) while competitor ad signals come from the
+  Ad Library or manual imports (usually incomplete) — Claude is told the score is an estimate.
+- `record_competitor_signal` values override derived ones when named after a signal (aliases: `social_followers`,
+  `web_traffic`/`monthly_visits`, `review_count`).
