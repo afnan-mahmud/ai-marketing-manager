@@ -113,8 +113,14 @@ function fakeGraph(
           return json(
             {
               error: {
-                message: "Invalid parameter: is_adset_budget_sharing_enabled is required",
+                // Real Meta shape: the reason is only in error_user_*, not in `message`.
+                message: "Invalid parameter",
                 code: 100,
+                error_subcode: 4834011,
+                error_user_title:
+                  "Must specify True or False in is_adset_budget_sharing_enabled field",
+                error_user_msg:
+                  "You must specify True or False in the field is_adset_budget_sharing_enabled  if you are not using campaign budget.",
               },
             },
             400,
