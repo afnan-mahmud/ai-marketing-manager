@@ -187,7 +187,7 @@ export async function createCampaign(
   } catch (err) {
     if (
       err instanceof MetaApiError &&
-      /is_adset_budget_sharing_enabled/.test(err.message) &&
+      /is_adset_budget_sharing_enabled|subcode 4834011/.test(err.message) &&
       !payload.daily_budget
     ) {
       res = await post({ ...payload, is_adset_budget_sharing_enabled: "false" });

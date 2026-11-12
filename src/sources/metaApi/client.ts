@@ -16,6 +16,9 @@ interface GraphError {
   code?: number;
   error_subcode?: number;
   is_transient?: boolean;
+  /** Meta often puts the real reason here; `message` is then just "Invalid parameter". */
+  error_user_title?: string;
+  error_user_msg?: string;
   fbtrace_id?: string;
 }
 
@@ -153,7 +156,12 @@ export class MetaApiClient {
   }
 
   private toError(status: number, e: GraphError): MetaApiError {
-    const msg = redact(e.message ?? `HTTP ${status}`);
+    const detail = [e.error_user_title, e.error_user_msg].filter(Boolean).join(": ");
+    const msg = redact(
+      (e.message ?? `HTTP ${status}`) +
+        (detail ? ` — ${detail}` : "") +
+        (e.error_subcode ? ` (subcode ${e.error_subcode})` : ""),
+    );
     let friendly: string;
     if (e.code === 190)
       friendly = `Meta access token is invalid or expired (${msg}). Generate a new token with ads_read.`;
